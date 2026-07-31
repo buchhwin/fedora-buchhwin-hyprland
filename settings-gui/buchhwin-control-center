@@ -241,7 +241,10 @@ class Window(Adw.ApplicationWindow):
         self._page_look()
         self._page_theme()
         self._page_keys()
+        self._page_defaults()
         self._page_wallpaper()
+        self._page_drives()
+        self._page_accounts()
         self._page_input()
         self._page_power()
         self._page_autostart()
@@ -305,6 +308,29 @@ class Window(Adw.ApplicationWindow):
                    lambda v: self.s.set("look.shadow", v))
         switch_row(g, _("Animations"), "", self.s.get("look.animations", True),
                    lambda v: self.s.set("look.animations", v))
+
+        g = group(p, _("Windows"),
+                  _("Tiling is the default. A workspace switched to floating "
+                    "behaves like Windows: windows drag freely and snap "
+                    "magnetically to edges and to each other."))
+        switch_row(g, _("Magnetic snapping"),
+                   _("Floating windows click into place near an edge"),
+                   self.s.get("layout.snap", True),
+                   lambda v: self.s.set("layout.snap", v))
+        spin_row(g, _("Snap distance"), _("Pixels"), 0, 40, 1,
+                 self.s.get("layout.snap_window_gap", 12),
+                 lambda v: self.s.set("layout.snap_window_gap", int(v)))
+        combo_row(g, _("Tiling layout"), _("dwindle splits, master keeps one big"),
+                  ["dwindle", "master"], self.s.get("layout.default", "dwindle"),
+                  lambda v: self.s.set("layout.default", v))
+
+        floating = self.s.get("layout.floating_workspaces", []) or []
+        row = Adw.ActionRow(
+            title=_("Floating workspaces"),
+            subtitle=(", ".join(str(x) for x in floating) if floating
+                      else _("none — SUPER+SHIFT+Space switches the current one")))
+        row.set_subtitle_lines(0)
+        g.add(row)
 
         g = group(p, _("Profile"),
                   _("Work is quick and restrained. Showcase is slower with more "
@@ -560,6 +586,329 @@ class Window(Adw.ApplicationWindow):
             items.pop(index)
             self.s.set("autostart", items)
             self._rebuild_autostart()
+
+
+    # -- default applications -------------------------------------------------
+    def _installed_apps(self) -> list[tuple[str, str]]:
+        """(Display name, command) for everything with a .desktop entry.
+
+        Read from the system rather than hardcoded: offering the user a browser
+        that is not installed is worse than offering none.
+        """
+        seen: dict[str, str] = {}
+        for base in ("/usr/share/applications",
+                     "/usr/local/share/applications",
+                     str(Path(DATA_HOME := os.environ.get(
+                         "XDG_DATA_HOME", Path.home() / ".local/share")) / "applications"),
+                     "/var/lib/flatpak/exports/share/applications"):
+            d = Path(base)
+            if not d.is_dir():
+                continue
+            for entry in sorted(d.glob("*.desktop")):
+                try:
+                    text = entry.read_text(errors="replace")
+                except OSError:
+                    continue
+                if "NoDisplay=true" in text:
+                    continue
+                name = cmd = ""
+                for line in text.splitlines():
+                    if line.startswith("Name=") and not name:
+                        name = line[5:].strip()
+                    elif line.startswith("Exec=") and not cmd:
+                        # Strip the %f/%U placeholders — they are for the
+                        # desktop file, not for a shell.
+                        cmd = " ".join(w for w in line[5:].split()
+                                       if not w.startswith("%"))
+                    if name and cmd:
+                        break
+                if name and cmd and name not in seen:
+                    seen[name] = cmd
+        return sorted(seen.items())
+
+    def _page_defaults(self):
+        p = page(_("Default apps"), "emblem-default-symbolic")
+        g = group(p, _("Programs the shortcuts use"),
+                  _("Changing one here changes the shortcut immediately — "
+                    "SUPER+B starts whatever the browser is set to."))
+
+        apps = self._installed_apps()
+        names = [n for n, _c in apps]
+        by_name = dict(apps)
+        by_cmd = {c: n for n, c in apps}
+
+        fields = [
+            ("programs.terminal",     _("Terminal"),      "SUPER+Return"),
+            ("programs.browser",      _("Browser"),       "SUPER+B"),
+            ("programs.file_manager", _("File manager"),  "SUPER+E"),
+            ("programs.editor",       _("Editor"),        "SUPER+SHIFT+C"),
+            ("programs.calendar",     _("Calendar"),      ""),
+            ("programs.mail",         _("Mail"),          ""),
+            ("programs.image_viewer", _("Image viewer"),  ""),
+            ("programs.music",        _("Music"),         ""),
+        ]
+        for key, title, shortcut in fields:
+            current_cmd = self.s.get(key, "") or ""
+            current_name = by_cmd.get(current_cmd, _("Custom…"))
+            options = [*names, _("Custom…")]
+            row = combo_row(g, title, shortcut, options,
+                            current_name if current_name in options else _("Custom…"),
+                            lambda v, k=key, m=by_name: self._set_default(k, m.get(v)))
+            if current_name == _("Custom…"):
+                row.set_subtitle(f"{shortcut}  ·  {current_cmd}" if shortcut else current_cmd)
+
+        g2 = group(p, _("File associations"),
+                   _("Also set the system default, so a double-click in the "
+                     "file manager opens the same program. Without this you "
+                     "change the browser and links keep opening the old one."))
+        row = Adw.ActionRow(title=_("Apply to file associations"))
+        btn = Gtk.Button(label=_("Apply"), valign=Gtk.Align.CENTER)
+        btn.connect("clicked", self._apply_mime)
+        row.add_suffix(btn)
+        g2.add(row)
+
+        self.add_page(p, "defaults", _("Default apps"), "emblem-default-symbolic")
+
+    def _set_default(self, key: str, command: str | None):
+        if command:
+            self.s.set(key, command)
+
+    def _apply_mime(self, _btn):
+        """Point the common MIME types at the chosen programs."""
+        pairs = [
+            (self.s.get("programs.browser"), ["x-scheme-handler/http",
+                                              "x-scheme-handler/https", "text/html"]),
+            (self.s.get("programs.file_manager"), ["inode/directory"]),
+            (self.s.get("programs.image_viewer"), ["image/png", "image/jpeg", "image/webp"]),
+            (self.s.get("programs.mail"), ["x-scheme-handler/mailto"]),
+        ]
+        applied = 0
+        for command, types in pairs:
+            if not command:
+                continue
+            binary = command.split()[0]
+            desktop = self._desktop_for(binary)
+            if not desktop:
+                continue
+            for mime in types:
+                subprocess.run(["xdg-mime", "default", desktop, mime], check=False,
+                               capture_output=True)
+                applied += 1
+        self.toast(_("{} file associations set").format(applied))
+
+    @staticmethod
+    def _desktop_for(binary: str) -> str | None:
+        for base in ("/usr/share/applications", "/usr/local/share/applications",
+                     str(Path(os.environ.get("XDG_DATA_HOME",
+                                             Path.home() / ".local/share")) / "applications")):
+            d = Path(base)
+            if not d.is_dir():
+                continue
+            for entry in d.glob("*.desktop"):
+                try:
+                    if f"Exec={binary}" in entry.read_text(errors="replace"):
+                        return entry.name
+                except OSError:
+                    continue
+        return None
+
+    # -- drives ---------------------------------------------------------------
+    def _page_drives(self):
+        p = page(_("Drives"), "drive-harddisk-symbolic")
+
+        self.cloud_group = group(
+            p, _("Cloud"),
+            _("Google Drive files do NOT come from the Accounts page — GNOME 50 "
+              "removed that. They come from here, through rclone. You sign in "
+              "in your browser; no password is stored by this application."))
+        self.net_group = group(
+            p, _("Network"),
+            _("SMB, NFS, WebDAV or SFTP. Mounted as you, without root. "
+              "Passwords go to the keyring."))
+        self._rebuild_drives()
+        self.add_page(p, "drives", _("Drives"), "drive-harddisk-symbolic")
+
+    def _drives(self) -> list[dict]:
+        return list(self.s.get("drives", []) or [])
+
+    def _rebuild_drives(self):
+        for grp in (self.cloud_group, self.net_group):
+            while (child := grp.get_first_child()) is not None:
+                if isinstance(child, Adw.PreferencesRow):
+                    grp.remove(child)
+                else:
+                    break
+
+        for d in self._drives():
+            target = grp = None
+            if d.get("kind") == "cloud":
+                grp = self.cloud_group
+                target = f"~/Drives/{d['name']}"
+            else:
+                grp = self.net_group
+                user = f"{d.get('user')}@" if d.get("user") else ""
+                target = f"{d.get('type', 'smb')}://{user}{d.get('host', '')}/{d.get('share', '')}"
+            row = Adw.ActionRow(title=d["name"], subtitle=target)
+
+            state = Gtk.Label(label="…")
+            state.add_css_class("dim-label")
+            row.add_suffix(state)
+            self._refresh_drive_state(d["name"], state)
+
+            connect = Gtk.Button(icon_name="view-refresh-symbolic",
+                                 valign=Gtk.Align.CENTER, tooltip_text=_("Connect"))
+            connect.add_css_class("flat")
+            connect.connect("clicked", lambda _b, n=d["name"], l=state:
+                            self._drive_cmd("mount", n, l))
+            row.add_suffix(connect)
+
+            remove = Gtk.Button(icon_name="user-trash-symbolic",
+                                valign=Gtk.Align.CENTER, tooltip_text=_("Remove"))
+            remove.add_css_class("flat")
+            remove.add_css_class("destructive-action")
+            remove.connect("clicked", lambda _b, n=d["name"]: self._drive_remove(n))
+            row.add_suffix(remove)
+            grp.add(row)
+
+        add_cloud = Adw.ActionRow(
+            title=_("Add cloud storage"),
+            subtitle=_("Your browser opens for the sign-in"))
+        for label, provider in ((_("Google Drive"), "drive"), (_("OneDrive"), "onedrive"),
+                                (_("Dropbox"), "dropbox"), (_("WebDAV"), "webdav")):
+            b = Gtk.Button(label=label, valign=Gtk.Align.CENTER)
+            b.connect("clicked", lambda _b, pr=provider: self._drive_add_cloud(pr))
+            add_cloud.add_suffix(b)
+        self.cloud_group.add(add_cloud)
+
+        add_net = Adw.ActionRow(title=_("Add a network drive"))
+        b = Gtk.Button(label=_("Add…"), valign=Gtk.Align.CENTER)
+        b.add_css_class("suggested-action")
+        b.connect("clicked", lambda _b: self._drive_add_network_dialog())
+        add_net.add_suffix(b)
+        self.net_group.add(add_net)
+
+    def _drives_script(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, str(REPO / "scripts" / "drives.py"), *args],
+                              capture_output=True, text=True, check=False)
+
+    def _refresh_drive_state(self, name: str, label: Gtk.Label):
+        out = self._drives_script("list").stdout
+        for line in out.splitlines():
+            if line.startswith(name + " ") or line.split()[:1] == [name]:
+                parts = line.split()
+                if len(parts) >= 3:
+                    label.set_label(parts[2])
+                return
+        label.set_label("—")
+
+    def _drive_cmd(self, cmd: str, name: str, label: Gtk.Label | None = None):
+        proc = self._drives_script(cmd, name)
+        if proc.returncode == 0:
+            self.toast(_("{}: {}").format(name, cmd))
+        else:
+            self.toast(proc.stderr.strip().splitlines()[-1] if proc.stderr else _("failed"))
+        if label:
+            self._refresh_drive_state(name, label)
+
+    def _drive_remove(self, name: str):
+        dialog = Adw.MessageDialog(
+            transient_for=self, modal=True,
+            heading=_("Remove {}?").format(name),
+            body=_("The drive is disconnected and its entry disappears from the "
+                   "file manager. Nothing in the cloud or on the server is deleted."))
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("remove", _("Remove"))
+        dialog.set_response_appearance("remove", Adw.ResponseAppearance.DESTRUCTIVE)
+
+        def done(_d, response):
+            if response == "remove":
+                self._drives_script("remove", name)
+                self.s.data = S.read()
+                self._rebuild_drives()
+        dialog.connect("response", done)
+        dialog.present()
+
+    def _drive_add_cloud(self, provider: str):
+        self.toast(_("Sign in in the browser window that opens"))
+        # rclone drives the OAuth flow itself and opens the browser; running it
+        # in a terminal keeps its prompts visible instead of swallowing them.
+        term = self.s.get("programs.terminal", "kitty").split()[0]
+        subprocess.Popen([term, "-e", sys.executable,
+                          str(REPO / "scripts" / "drives.py"),
+                          "add-cloud", "--provider", provider])
+
+    def _drive_add_network_dialog(self):
+        dialog = Adw.MessageDialog(transient_for=self, modal=True,
+                                   heading=_("Add a network drive"))
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        kind = Adw.ComboRow(title=_("Type"),
+                            model=Gtk.StringList.new(["smb", "nfs", "dav", "sftp"]))
+        host = Adw.EntryRow(title=_("Server"))
+        share = Adw.EntryRow(title=_("Share"))
+        user = Adw.EntryRow(title=_("User"))
+        password = Adw.PasswordEntryRow(title=_("Password"))
+        listbox = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        listbox.add_css_class("boxed-list")
+        for w in (kind, host, share, user, password):
+            listbox.append(w)
+        box.append(listbox)
+        dialog.set_extra_child(box)
+
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("add", _("Add"))
+        dialog.set_response_appearance("add", Adw.ResponseAppearance.SUGGESTED)
+
+        def done(_d, response):
+            if response != "add" or not host.get_text().strip():
+                return
+            args = ["add-network",
+                    "--type", ["smb", "nfs", "dav", "sftp"][kind.get_selected()],
+                    "--host", host.get_text().strip(),
+                    "--share", share.get_text().strip(),
+                    "--user", user.get_text().strip()]
+            proc = subprocess.run(
+                [sys.executable, str(REPO / "scripts" / "drives.py"), *args],
+                input=password.get_text(), text=True, capture_output=True, check=False)
+            self.s.data = S.read()
+            self._rebuild_drives()
+            self.toast(_("Added") if proc.returncode == 0
+                       else (proc.stderr.strip().splitlines()[-1] if proc.stderr
+                             else _("failed")))
+        dialog.connect("response", done)
+        dialog.present()
+
+    # -- accounts -------------------------------------------------------------
+    def _page_accounts(self):
+        p = page(_("Accounts"), "system-users-symbolic")
+        g = group(p, _("Online accounts"),
+                  _("Sign in once, and Evolution and the calendar have your "
+                    "mail, calendar and contacts."))
+
+        row = Adw.ActionRow(
+            title=_("Online accounts"),
+            subtitle=_("Google, Microsoft, Nextcloud, IMAP/CalDAV"))
+        btn = Gtk.Button(label=_("Open"), valign=Gtk.Align.CENTER)
+        btn.add_css_class("suggested-action")
+        btn.connect("clicked", lambda _b: run("gnome-online-accounts-gtk"))
+        row.add_suffix(btn)
+        g.add(row)
+
+        # This banner exists because the alternative is half an hour of looking
+        # for a Drive folder that is never going to appear.
+        g2 = group(p, _("About Google Drive"), "")
+        note = Adw.ActionRow(
+            title=_("Files do not come from here"),
+            subtitle=_("GNOME 50 removed Google Drive file access — the library "
+                       "behind it had been unmaintained for years. Calendar, "
+                       "contacts and mail still work. For FILES use the Drives "
+                       "page, which uses rclone."))
+        note.set_subtitle_lines(0)
+        goto = Gtk.Button(label=_("Drives"), valign=Gtk.Align.CENTER)
+        goto.connect("clicked", lambda _b: self.stack.set_visible_child_name("drives"))
+        note.add_suffix(goto)
+        g2.add(note)
+
+        self.add_page(p, "accounts", _("Accounts"), "system-users-symbolic")
 
     def _page_about(self):
         p = page(_("About"), "help-about-symbolic")
