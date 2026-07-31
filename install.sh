@@ -156,3 +156,9 @@ fi
 
 trap - ERR
 should_run summary && phase_summary
+
+# The line above must not be the last thing the script does. `a && b` leaves
+# the status of `a` when it short-circuits, so any run that filters the summary
+# phase out — every `--only` that does not name it — exited 1 and reported a
+# perfectly good install as a failure.
+exit 0
