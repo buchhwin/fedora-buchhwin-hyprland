@@ -74,6 +74,10 @@ local cursor_theme = look.cursor_theme or "breeze_cursors"
 hl.env("XCURSOR_SIZE", cursor_size)
 hl.env("HYPRCURSOR_SIZE", cursor_size)
 hl.env("XCURSOR_THEME", cursor_theme)
+-- HYPRCURSOR_THEME was missing while HYPRCURSOR_SIZE was set, so hyprcursor —
+-- which Hyprland prefers over XCursor when it finds a theme — got a size and no
+-- name. Setting only half of a pair is worse than setting neither.
+hl.env("HYPRCURSOR_THEME", cursor_theme)
 
 ------------------------------------------------------------------------------
 -- Look and feel
