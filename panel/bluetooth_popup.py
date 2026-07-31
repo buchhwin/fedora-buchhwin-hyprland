@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import threading
 
 import gi
 
@@ -99,22 +100,47 @@ class BluetoothPopup(PanelWindow):
     def build(self, window: Gtk.Window) -> Gtk.Widget:
         self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         self._scanning = False
-        self._populate()
+        self._show(None, [])
         return self._box
 
     def refresh(self) -> None:
         self._populate()
 
     def _populate(self) -> None:
+        """Read the adapter and the devices OFF the main thread.
+
+        bluetoothctl takes seconds — `show` on a machine with no adapter runs
+        to its timeout, and `info` is one call per device. Doing that inline
+        froze the whole panel daemon: the Bluetooth popup did not appear at
+        all within three seconds, and while it was building, every other popup
+        was frozen too. Measured; it is why this is threaded and the others are
+        not.
+        """
+        self._set_loading()
+
+        def work() -> None:
+            state = adapter()
+            found = devices() if state and state["powered"] else []
+            GLib.idle_add(self._show, state, found)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _set_loading(self) -> None:
+        box = self._box
+        while (child := box.get_first_child()) is not None:
+            box.remove(child)
+        box.append(heading("Bluetooth"))
+        box.append(note("Reading adapter…"))
+
+    def _show(self, adapter_state, found) -> bool:
         box = self._box
         while (child := box.get_first_child()) is not None:
             box.remove(child)
 
-        adapter_state = adapter()
         if adapter_state is None:
             box.append(heading("Bluetooth"))
             box.append(note("This machine has no Bluetooth adapter"))
-            return
+            return False
 
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         row.add_css_class("popup-row")
@@ -132,9 +158,8 @@ class BluetoothPopup(PanelWindow):
 
         if not adapter_state["powered"]:
             box.append(note("Turn Bluetooth on to see devices"))
-            return
+            return False
 
-        found = devices()
         if found:
             box.append(Gtk.Separator())
             box.append(heading("Devices"))
@@ -153,6 +178,7 @@ class BluetoothPopup(PanelWindow):
         settings.add_css_class("popup-action")
         settings.connect("clicked", lambda _b: launch(["blueman-manager"], self))
         box.append(settings)
+        return False
 
     def _device_row(self, device: dict) -> Gtk.Widget:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)

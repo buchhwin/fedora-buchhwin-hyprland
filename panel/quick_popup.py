@@ -16,12 +16,13 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import threading
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import Gtk  # noqa: E402
+from gi.repository import GLib, Gtk  # noqa: E402
 
 from popup import PanelWindow, heading, launch, note  # noqa: E402
 
@@ -145,7 +146,8 @@ class QuickPopup(PanelWindow):
 
     def build(self, window: Gtk.Window) -> Gtk.Widget:
         self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        self._populate()
+        self._state: dict = {}
+        self._render()
         return self._box
 
     def refresh(self) -> None:
@@ -154,18 +156,48 @@ class QuickPopup(PanelWindow):
     # -- layout -------------------------------------------------------------
 
     def _populate(self) -> None:
+        """Read all nine tools OFF the main thread.
+
+        Nine subprocesses at up to four seconds each, run inline, froze the
+        panel daemon while the popup was built — measured: the window did not
+        appear within a second, which for the popup behind the gear is the
+        difference between "instant" and "did my click register". The
+        Bluetooth popup had the same fault and the same fix.
+        """
+        def work() -> None:
+            state = {
+                "wifi": wifi_enabled(),
+                "bluetooth": bluetooth_enabled(),
+                "dnd": dnd_enabled(),
+                "nightlight": nightlight_enabled(),
+                "caffeine": caffeine_enabled(),
+                "gamemode": gamemode_enabled(),
+                "firewall": firewall_enabled(),
+                "volume": volume(),
+                "brightness": brightness(),
+            }
+            GLib.idle_add(self._apply_state, state)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _apply_state(self, state: dict) -> bool:
+        self._state = state
+        self._render()
+        return False
+
+    def _render(self) -> None:
         box = self._box
         while (child := box.get_first_child()) is not None:
             box.remove(child)
 
         box.append(self._toggle_grid())
 
-        vol, muted = volume()
+        vol, muted = self._state.get("volume", (0, False))
         box.append(self._slider("Volume", vol, muted,
                                 "audio-volume-high-symbolic",
                                 self._set_volume))
 
-        level = brightness()
+        level = self._state.get("brightness")
         if level is not None:
             box.append(self._slider("Brightness", level, False,
                                     "display-brightness-symbolic",
@@ -190,30 +222,33 @@ class QuickPopup(PanelWindow):
                            row_spacing=8, column_spacing=8,
                            homogeneous=True)
 
-        wifi = wifi_enabled()
+        wifi = self._state.get("wifi")
         if wifi is not None:
             grid.append(self._tile("Wi-Fi", "network-wireless-symbolic", wifi,
                                    self._toggle_wifi))
 
-        bluetooth = bluetooth_enabled()
+        bluetooth = self._state.get("bluetooth")
         if bluetooth is not None:
             grid.append(self._tile("Bluetooth", "bluetooth-symbolic", bluetooth,
                                    self._toggle_bluetooth))
 
         grid.append(self._tile("Do not disturb", "notifications-disabled-symbolic",
-                               dnd_enabled(), self._toggle_dnd))
+                               self._state.get("dnd", False), self._toggle_dnd))
         grid.append(self._tile("Night light", "night-light-symbolic",
-                               nightlight_enabled(), self._toggle_nightlight))
+                               self._state.get("nightlight", False),
+                               self._toggle_nightlight))
         grid.append(self._tile("Keep awake", "my-caffeine-on-symbolic",
-                               caffeine_enabled(), self._toggle_caffeine))
+                               self._state.get("caffeine", False),
+                               self._toggle_caffeine))
         grid.append(self._tile("Light theme", "weather-clear-symbolic",
                                False, self._toggle_theme, momentary=True))
 
         # Game mode: blur, shadows, animations and gaps off in one press.
         grid.append(self._tile("Game mode", "applications-games-symbolic",
-                               gamemode_enabled(), self._toggle_gamemode))
+                               self._state.get("gamemode", False),
+                               self._toggle_gamemode))
 
-        firewall = firewall_enabled()
+        firewall = self._state.get("firewall")
         if firewall is not None:
             grid.append(self._tile("Firewall", "security-high-symbolic",
                                    firewall, self._toggle_firewall))
