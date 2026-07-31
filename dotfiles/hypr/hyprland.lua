@@ -176,6 +176,15 @@ hl.config({
         force_default_wallpaper   = 0,
         disable_hyprland_logo     = true,
         disable_splash_rendering  = true,
+
+        -- If hyprlock dies while the screen is locked, the compositor stays
+        -- locked — by design, so that killing the lock client is not a way in.
+        -- The cost is that a crashed lock screen leaves you staring at
+        -- Hyprland's "lockscreen app died" notice with no way back except a
+        -- reboot, losing whatever was open. This lets a fresh lock client
+        -- attach to the existing lock instead. It still demands your password;
+        -- what it does not demand is a reboot.
+        allow_session_lock_restore = true,
         focus_on_activate         = true,
         -- Renamed in 0.55; same 0/1/2 meaning as the old
         -- new_window_takes_over_fullscreen. 2 is already the default, kept
