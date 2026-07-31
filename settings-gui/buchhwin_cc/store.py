@@ -41,7 +41,7 @@ class Settings:
         S.write(self.data)
         self._dirty = False
 
-    def apply(self) -> None:
+    def apply(self) -> list[str]:
         """Write the file, then run everything that turns it into a desktop.
 
         This used to write settings.lua, reload Hyprland and restart the bar —
@@ -55,11 +55,22 @@ class Settings:
         ExecReload (SIGUSR2), and a restart would kill everything in the unit's
         cgroup — which includes this very window when it was opened from the
         bar's own settings button. Apply was shooting itself.
+
+        Returns the list of steps that failed, so the window can say so instead
+        of reporting "Applied" over a generator that died in a traceback.
         """
         self.save()
-        run(sys.executable, str(REPO / "theme" / "apply-theme.py"))
-        run(sys.executable, str(REPO / "scripts" / "dock.py"), "sync")
-        run(str(REPO / "scripts" / "wallpaper.sh"), "sync-timer")
-        run(sys.executable, str(REPO / "scripts" / "drives.py"), "sync")
-        run("hyprctl", "reload")
-        run("systemctl", "--user", "reload", "buchhwin-bar.service")
+        steps = (
+            ("theme",     (sys.executable, str(REPO / "theme" / "apply-theme.py"))),
+            ("dock",      (sys.executable, str(REPO / "scripts" / "dock.py"), "sync")),
+            ("wallpaper", (str(REPO / "scripts" / "wallpaper.sh"), "sync-timer")),
+            ("drives",    (sys.executable, str(REPO / "scripts" / "drives.py"), "sync")),
+            ("hyprland",  ("hyprctl", "reload")),
+            ("bar",       ("systemctl", "--user", "reload", "buchhwin-bar.service")),
+        )
+        failed = []
+        for name, cmd in steps:
+            ok, why = run(*cmd)
+            if not ok:
+                failed.append(f"{name}: {why}")
+        return failed

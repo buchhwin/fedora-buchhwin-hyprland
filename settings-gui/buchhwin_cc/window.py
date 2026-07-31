@@ -133,19 +133,26 @@ class Window(Adw.ApplicationWindow):
             btn.set_sensitive(False)
             btn.set_label(_("Applying…"))
 
-        def done() -> bool:
+        def done(failed: list[str]) -> bool:
             if btn is not None:
                 btn.set_sensitive(True)
                 btn.set_label(_("Apply"))
-            self.toast(_("Applied"))
+            if failed:
+                # Name what broke. "Applied" over a failed step is worse than
+                # no message at all: it sends you looking in the wrong place.
+                self.toast(_("Applied, but failed: {}").format(", ".join(failed)))
+                for line in failed:
+                    print(f"apply: {line}", file=sys.stderr)
+            else:
+                self.toast(_("Applied"))
             return False
 
         def work() -> None:
             try:
-                self.s.apply()
+                failed = self.s.apply()
             except Exception as exc:                      # noqa: BLE001
-                print(f"apply failed: {exc}", file=sys.stderr)
-            GLib.idle_add(done)
+                failed = [str(exc)]
+            GLib.idle_add(done, failed)
 
         threading.Thread(target=work, daemon=True).start()
 

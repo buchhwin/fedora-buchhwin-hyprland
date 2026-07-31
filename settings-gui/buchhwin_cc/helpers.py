@@ -26,12 +26,25 @@ ACCENTS = ["rosewater", "flamingo", "pink", "mauve", "red", "maroon", "peach",
            "yellow", "green", "teal", "sky", "sapphire", "blue", "lavender"]
 
 
-def run(*cmd: str) -> None:
+def run(*cmd: str) -> tuple[bool, str]:
+    """Run a helper. Never raises — but never hides a failure either.
+
+    This used to send stdout and stderr to /dev/null and swallow every
+    exception, which is how a generator that died with a Python traceback still
+    produced a cheerful "Applied". Callers that do not care can ignore the
+    result; apply() does care and reports it.
+    """
     try:
-        subprocess.run(cmd, check=False, timeout=20,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except (OSError, subprocess.TimeoutExpired):
-        pass
+        p = subprocess.run(cmd, check=False, timeout=20,
+                           capture_output=True, text=True)
+    except OSError as exc:
+        return False, str(exc)
+    except subprocess.TimeoutExpired:
+        return False, "timed out"
+    if p.returncode != 0:
+        lines = (p.stderr or p.stdout or "").strip().splitlines()
+        return False, lines[-1] if lines else f"exit {p.returncode}"
+    return True, ""
 
 
 def cursor_themes() -> list[str]:
