@@ -24,6 +24,7 @@ IS_VM=0
 # ---------------------------------------------------------------------------
 ONLY_PHASES=()
 SKIP_PHASES=()
+WITH_GROUPS=()
 
 usage() {
     cat <<'EOF'
@@ -32,6 +33,9 @@ Usage: ./install.sh [options]
   --dry-run              Print every action without changing anything.
   --unattended           Never ask a question; assume yes.
   --minimal              Desktop only: no applications, no sysadmin toolkit.
+  --with GROUP           Add an optional package group (repeatable).
+                         Available: k8s iac db analysis virt backup
+                         Nothing is installed from these unless you ask.
   --no-flatpak           Skip Flathub and all Flatpaks.
   --profile work|showcase
                          Visual profile. "work" is quick and restrained,
@@ -54,6 +58,7 @@ while [[ $# -gt 0 ]]; do
         --dry-run)     DRY_RUN=1 ;;
         --unattended)  UNATTENDED=1 ;;
         --minimal)     MINIMAL=1 ;;
+        --with)        WITH_GROUPS+=("${2:?}"); shift ;;
         --no-flatpak)  NO_FLATPAK=1 ;;
         --profile)     PROFILE="${2:?}"; shift ;;
         --gpu)         GPU="${2:?}"; shift ;;
@@ -69,6 +74,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 export DRY_RUN UNATTENDED MINIMAL NO_FLATPAK PROFILE GPU LANG_CHOICE
+export WITH_GROUPS_STR="${WITH_GROUPS[*]:-}"
 export THEME_FLAVOUR THEME_ACCENT TARGET_FEDORA IS_VM
 
 # ---------------------------------------------------------------------------

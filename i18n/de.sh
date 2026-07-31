@@ -71,6 +71,8 @@ declare -gA MSG=(
     [ok_session]="Sitzungseintrag angelegt"
 
     [sec_sysadmin]="Sysadmin-Werkzeuge"
+    [step_optional_group]="Optionale Gruppe wird installiert: %s"
+    [warn_unknown_group]="Unbekannte Paketgruppe: %s"
     [sec_apps]="Anwendungen"
     [info_minimal_skip_apps]="--minimal: Anwendungen werden übersprungen"
     [step_wireshark_group]="Benutzer wird der Gruppe wireshark hinzugefügt"
@@ -111,6 +113,11 @@ declare -gA MSG=(
     [sec_services]="Hintergrunddienste"
     [step_enable_units]="Benutzerdienste werden aktiviert"
     [warn_unit]="Dienst %s konnte nicht aktiviert werden"
+    [step_generated_units]="Wallpaper-Timer und Laufwerks-Dienste werden erzeugt"
+    [step_pam_keyring]="Schlüsselbund wird bei der Anmeldung entsperrt"
+    [info_pam_present]="Schlüsselbund wird bereits bei der Anmeldung entsperrt"
+    [ok_pam_keyring]="Schlüsselbund öffnet sich mit dem Anmeldepasswort"
+    [warn_pam_missing]="/etc/pam.d/sddm nicht gefunden — der Schlüsselbund fragt separat nach einem Passwort"
     [ok_services]="Dienste aktiviert"
 
     [sec_vm]="Virtuelle Maschine"

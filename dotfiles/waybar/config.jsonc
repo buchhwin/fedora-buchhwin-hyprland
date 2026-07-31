@@ -14,9 +14,15 @@
 
     "modules-left":   ["custom/logo", "hyprland/workspaces", "hyprland/submap"],
     "modules-center": ["hyprland/window"],
-    "modules-right":  ["tray", "custom/recording", "pulseaudio", "bluetooth",
-                       "network", "cpu", "memory", "temperature", "battery",
-                       "clock", "custom/notifications", "custom/power"],
+    "modules-right":  ["tray", "custom/recording", "custom/drives", "pulseaudio",
+                       "bluetooth", "network", "cpu", "memory", "temperature",
+                       "battery", "custom/calendar", "clock",
+                       "custom/notifications", "custom/power"],
+
+    // One bar per screen, and each shows only its own workspaces. Without
+    // all-outputs:false every screen shows every workspace, which defeats the
+    // point of a fixed 1-5 / 6-10 assignment.
+    "output": ["*"],
 
     "custom/logo": {
         "format": "󰣛",
@@ -25,6 +31,7 @@
     },
 
     "hyprland/workspaces": {
+        "all-outputs": false,
         "format": "{icon}",
         "format-icons": {
             "term": "󰆍", "web": "󰈹", "code": "󰨞", "mon": "󰍹", "chat": "󰭹",
@@ -140,6 +147,29 @@
                 "today":   "<span color='#f38ba8'><b><u>{}</u></b></span>"
             }
         }
+    },
+
+    // Real appointments, not just a month grid. Fed by scripts/calendar.py,
+    // which reads the same evolution-data-server the calendar app uses — so
+    // the bar and GNOME Calendar can never disagree.
+    "custom/calendar": {
+        "exec": "~/.local/share/fedora-buchhwin-hyprland/scripts/calendar.py waybar",
+        "return-type": "json",
+        "interval": 60,
+        "on-click": "gnome-calendar",
+        "on-click-right": "evolution -c calendar",
+        "escape": false,
+        "max-length": 34
+    },
+
+    // Only visible while something is mounted, so it costs no space on a
+    // machine with no drives configured.
+    "custom/drives": {
+        "exec": "~/.local/share/fedora-buchhwin-hyprland/scripts/drives.py waybar",
+        "return-type": "json",
+        "interval": 30,
+        "on-click": "nemo ~/Drives",
+        "escape": false
     },
 
     "custom/notifications": {

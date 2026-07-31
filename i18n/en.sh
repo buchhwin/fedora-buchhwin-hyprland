@@ -81,6 +81,8 @@ declare -gA MSG=(
 
     # --- applications --------------------------------------------------------
     [sec_sysadmin]="Sysadmin toolkit"
+    [step_optional_group]="Installing the optional group: %s"
+    [warn_unknown_group]="Unknown package group: %s"
     [sec_apps]="Applications"
     [info_minimal_skip_apps]="--minimal: skipping applications"
     [step_wireshark_group]="Adding you to the wireshark group"
@@ -124,6 +126,11 @@ declare -gA MSG=(
     [sec_services]="Background services"
     [step_enable_units]="Enabling user services"
     [warn_unit]="Service %s could not be enabled"
+    [step_generated_units]="Generating the wallpaper timer and drive units"
+    [step_pam_keyring]="Unlocking the keyring at login"
+    [info_pam_present]="Keyring already unlocks at login"
+    [ok_pam_keyring]="Keyring unlocks with your login password"
+    [warn_pam_missing]="/etc/pam.d/sddm not found — the keyring will ask for a password separately"
     [ok_services]="Services enabled"
 
     # --- virtual machine -----------------------------------------------------

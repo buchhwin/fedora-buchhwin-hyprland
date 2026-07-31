@@ -143,7 +143,12 @@ local placement = {
     { class = "^(virt-manager|Remmina|wireshark)$",  workspace = "4" },
     -- The web apps get their own homes too, otherwise they land wherever.
     { class = "^(brave-origin-teams)$",              workspace = "5" },
+    { class = "^(brave-origin-chatgpt)$",            workspace = "5" },
+    { class = "^(brave-origin-claude)$",             workspace = "5" },
+    { class = "^(brave-origin-whatsapp)$",           workspace = "5" },
     { class = "^(brave-origin-outlook)$",            workspace = "2" },
+    { class = "^(brave-origin-microsoft-365)$",      workspace = "2" },
+    { class = "^(gnome-calendar|org.gnome.Calendar)$", workspace = "4" },
 }
 for i, p in ipairs(placement) do
     hl.window_rule({ name = "place-" .. i, match = { class = p.class },

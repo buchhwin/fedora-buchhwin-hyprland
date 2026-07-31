@@ -14,6 +14,22 @@ phase_apps() {
     mapfile -t sysadmin_copr < <(read_list "$REPO_DIR/packages/copr-sysadmin.txt")
     dnf_install "${sysadmin_copr[@]}"
 
+    # Optional groups: nothing from these is installed unless asked for with
+    # --with, which is the whole point. A desktop that ships kubectl, Terraform
+    # and two database clients to somebody who runs none of them is exactly the
+    # kind of weight this setup is trying not to carry.
+    local group
+    for group in ${WITH_GROUPS_STR:-}; do
+        local list="$REPO_DIR/packages/optional-$group.txt"
+        if [[ ! -f "$list" ]]; then
+            warn "$(msg warn_unknown_group "$group")"
+            continue
+        fi
+        step "$(msg step_optional_group "$group")"
+        mapfile -t extra < <(read_list "$list")
+        dnf_install "${extra[@]}"
+    done
+
     # Wireshark without this is root-only, which nobody wants in daily use.
     if getent group wireshark >/dev/null 2>&1; then
         if ! id -nG "$USER" | tr ' ' '\n' | grep -qx wireshark; then

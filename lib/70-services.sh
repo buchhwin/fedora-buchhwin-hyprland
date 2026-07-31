@@ -145,11 +145,36 @@ RestartSec=5
 [Install]
 WantedBy=graphical-session.target'
 
+    # --- keyring -------------------------------------------------------------
+    # Without a running secret service every cloud and network drive asks for
+    # its password again on every login, which defeats "sign in once".
+    _write_unit "buchhwin-keyring.service" \
+'[Unit]
+Description=Secret service (gnome-keyring)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/gnome-keyring-daemon --foreground --components=secrets,pkcs11
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target'
+
+    # --- wallpaper + drives --------------------------------------------------
+    # Both generate their own units from settings.lua, so the timer interval and
+    # the drive list can never drift from what is configured.
+    step "$(msg step_generated_units)"
+    run "$REPO_DIR/scripts/wallpaper.sh" sync-timer || warn "$(msg warn_unit wallpaper-timer)"
+    run python3 "$REPO_DIR/scripts/drives.py" sync || warn "$(msg warn_unit drives)"
+
     step "$(msg step_enable_units)"
     local u
-    for u in buchhwin-clipboard buchhwin-clipboard-image buchhwin-wallpaper \
-             buchhwin-bar buchhwin-notifications buchhwin-idle \
-             buchhwin-polkit buchhwin-nightlight; do
+    for u in buchhwin-keyring buchhwin-clipboard buchhwin-clipboard-image \
+             buchhwin-wallpaper buchhwin-bar buchhwin-notifications \
+             buchhwin-idle buchhwin-polkit buchhwin-nightlight; do
         run_quiet systemctl --user enable "$u.service" || warn "$(msg warn_unit "$u")"
     done
     run_quiet systemctl --user daemon-reload || true
