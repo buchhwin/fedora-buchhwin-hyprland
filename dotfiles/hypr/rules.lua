@@ -46,8 +46,18 @@ end
 
 -- Workspaces that behave like Windows: everything floats, and general.snap
 -- makes dragged windows click into place.
+--
+-- This is a WINDOW rule matched on the workspace, not a workspace rule.
+-- hl.workspace_rule has no field for it — `default_float` was rejected with
+-- "unknown field", which Hyprland printed as a config error on every start
+-- and I had not looked at. The effect was that new windows opened tiled on a
+-- floating workspace and only the ones the toggle script flipped ever floated.
 for _, id in ipairs(layout.floating_workspaces or {}) do
-    hl.workspace_rule({ workspace = tostring(id), default_float = true })
+    hl.window_rule({
+        name  = "float-on-workspace-" .. tostring(id),
+        match = { workspace = tostring(id) },
+        float = true,
+    })
 end
 
 -- Smart gaps: a single tiled window gets nearly the whole screen — but not
