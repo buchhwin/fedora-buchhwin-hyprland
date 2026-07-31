@@ -188,6 +188,25 @@ RestartSec=2
 [Install]
 WantedBy=graphical-session.target'
 
+    # --- removable drives ----------------------------------------------------
+    # --no-automount is deliberately NOT set: plugging a stick in and having it
+    # appear is the whole point. --notify says so; --tray would add a second
+    # drive icon next to the bar's own module.
+    _write_unit "buchhwin-usb.service" \
+'[Unit]
+Description=Mount removable drives (udiskie)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/udiskie --no-tray --notify --automount --file-manager nemo
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target'
+
     # --- keyring -------------------------------------------------------------
     # Without a running secret service every cloud and network drive asks for
     # its password again on every login, which defeats "sign in once".
@@ -219,13 +238,14 @@ WantedBy=graphical-session.target'
     step "$(msg step_generated_units)"
     run "$REPO_DIR/scripts/wallpaper.sh" sync-timer || warn "$(msg warn_unit wallpaper-timer)"
     run python3 "$REPO_DIR/scripts/drives.py" sync || warn "$(msg warn_unit drives)"
+    run python3 "$REPO_DIR/scripts/dock.py" sync || warn "$(msg warn_unit dock)"
 
     step "$(msg step_enable_units)"
     local u
     for u in buchhwin-keyring buchhwin-clipboard buchhwin-clipboard-image \
              buchhwin-wallpaper buchhwin-bar buchhwin-notifications \
              buchhwin-idle buchhwin-polkit buchhwin-nightlight \
-             buchhwin-panel; do
+             buchhwin-panel buchhwin-usb; do
         run_quiet systemctl --user enable "$u.service" || warn "$(msg warn_unit "$u")"
     done
     run_quiet systemctl --user daemon-reload || true
@@ -233,6 +253,12 @@ WantedBy=graphical-session.target'
     # Bluetooth is a system service and off by default on Fedora Server.
     if rpm -q bluez >/dev/null 2>&1 || (( DRY_RUN )); then
         run_quiet sudo systemctl enable bluetooth.service || true
+    fi
+
+    # So is printing. cups.socket rather than cups.service: it starts on the
+    # first print job and costs nothing until then.
+    if rpm -q cups >/dev/null 2>&1 || (( DRY_RUN )); then
+        run_quiet sudo systemctl enable cups.socket || true
     fi
 
     # --- keyring unlocks with the login --------------------------------------

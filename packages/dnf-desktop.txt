@@ -72,12 +72,28 @@ papirus-icon-theme
 # Breeze_Light — there is no "Breeze_Dark", however much it sounds like it.
 breeze-cursor-theme
 
+# --- printing ---------------------------------------------------------------
+# Fedora Server has no print stack at all, so a fresh install cannot print to
+# anything. avahi (already running for mDNS) means a network printer is usually
+# found without being told where it is.
+cups
+cups-filters
+system-config-printer
+
+# --- removable drives -------------------------------------------------------
+# udisks is present but nothing acts on it, so plugging in a USB stick visibly
+# does nothing. udiskie mounts it and says so.
+udiskie
+
 # --- fonts ------------------------------------------------------------------
 # JetBrainsMono *Nerd Font* is not packaged; the plain family is, and
 # lib/50-fonts-theme.sh installs the patched Nerd Font on top of it.
 jetbrains-mono-fonts
 rsms-inter-fonts
 google-noto-color-emoji-fonts
+# Without CJK coverage every Japanese, Chinese or Korean page in the browser is
+# a wall of empty boxes. Costs disk once, fixes it permanently.
+google-noto-sans-cjk-fonts
 
 # --- runtime for the settings GUI and the bar popups ------------------------
 python3-gobject

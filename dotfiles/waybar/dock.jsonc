@@ -1,0 +1,42 @@
+// The dock: a second waybar at the bottom edge.
+//
+// Not a separate program. nwg-dock exists but is packaged only in its sway
+// flavour, and a dock built from a different toolkit would need its own theme
+// pipeline, its own colour file and its own idea of what a rounded corner is.
+// This one inherits all of that from the bar it is a sibling of.
+//
+// wlr/taskbar shows the windows that are actually open (Hyprland implements
+// zwlr_foreign_toplevel_manager_v1), and the pinned launchers are plain custom
+// modules. Both are generated from settings.lua by scripts/dock.py, so the
+// settings app edits one list rather than this file.
+{
+    "layer": "top",
+    "position": "bottom",
+    "height": 52,
+    "margin-bottom": 8,
+    "spacing": 8,
+
+    // Centred and only as wide as its contents — a dock that spans the screen
+    // is a taskbar, and the taskbar is already at the top.
+    "modules-left": [],
+    "modules-center": ["wlr/taskbar"],
+    "modules-right": [],
+
+    "output": ["*"],
+
+    "wlr/taskbar": {
+        "format": "{icon}",
+        "icon-size": 32,
+        "icon-theme": "Papirus-Dark",
+        "tooltip-format": "{title}",
+        "on-click": "activate",
+        "on-click-middle": "close",
+        "on-click-right": "fullscreen",
+        // Never show the dock's own bar, and never the settings window twice.
+        "ignore-list": ["waybar"],
+        "app_ids-mapping": {
+            "brave-origin": "brave-browser",
+            "de.buchhwin.ControlCenter": "preferences-desktop"
+        }
+    }
+}
