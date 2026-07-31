@@ -20,44 +20,42 @@ to be worth posting.
 curl -fsSLO https://buchhwin.github.io/fedora-buchhwin-hyprland/bootstrap.sh && bash bootstrap.sh
 ```
 
-One line, and it does **not** pipe into a shell. `-O` writes the script to a
-file and `-f` makes curl fail on any HTTP error, so `bash` only ever runs a file
-that arrived complete.
-
-That distinction is not pedantry. `curl … | bash` starts executing while the
-download is still arriving, so a connection that drops halfway leaves a
-**truncated** script running — and a truncated line can mean something very
-different from the whole one. Downloading first costs you nothing and removes
-that failure mode entirely.
+That is the whole installation. Run it on **Fedora Server**, or on any Fedora
+that has no desktop yet.
 
 <details>
-<summary>Read it before you run it</summary>
-
-```bash
-curl -fsSLO https://buchhwin.github.io/fedora-buchhwin-hyprland/bootstrap.sh
-less bootstrap.sh      # read it
-bash bootstrap.sh      # then run it
-```
-
-Three separate commands, because `less file && bash file` looks like a
-confirmation step and is not one — `less` exits 0 even when you quit with `q`,
-so the script would run regardless of what you thought of it.
-
-`bootstrap.sh` is deliberately about 30 lines: it checks you are on Fedora and
-not root, installs git if it is missing, clones this repository to
-`~/.local/share/fedora-buchhwin-hyprland`, and hands over to `install.sh` with
-whatever arguments you passed.
-
-</details>
+<summary>Options, and why this is not <code>curl | bash</code></summary>
 
 Arguments are passed straight through:
 
 ```bash
-bash bootstrap.sh --dry-run          # print everything, change nothing
+bash bootstrap.sh --dry-run        # print everything, change nothing
+bash bootstrap.sh --minimal        # desktop only, no applications
+bash bootstrap.sh --with k8s       # optional extras
 ```
 
-Start from a plain **Fedora Server** install (or any Fedora with no desktop).
-The script adds everything else.
+To read it first — three separate commands, because `less file && bash file`
+looks like a confirmation step and is not one (`less` exits 0 even when you
+quit with `q`):
+
+```bash
+curl -fsSLO https://buchhwin.github.io/fedora-buchhwin-hyprland/bootstrap.sh
+less bootstrap.sh
+bash bootstrap.sh
+```
+
+The command downloads before it runs rather than piping into a shell: `-O`
+writes a file and `-f` makes curl fail on any HTTP error, so `bash` only ever
+sees a script that arrived complete. `curl … | bash` starts executing while the
+download is still in flight, and a connection that drops halfway leaves a
+truncated script running — where a cut-off line can mean something very
+different from the whole one.
+
+`bootstrap.sh` is about 30 lines: it checks you are on Fedora and not root,
+installs git if missing, clones this repository to
+`~/.local/share/fedora-buchhwin-hyprland`, and hands over to `install.sh`.
+
+</details>
 
 ---
 
