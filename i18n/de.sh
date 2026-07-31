@@ -35,6 +35,7 @@ declare -gA MSG=(
     [step_copr]="COPR %s wird aktiviert"
     [info_copr_present]="COPR %s ist bereits aktiv"
     [fail_copr]="COPR %s konnte nicht aktiviert werden"
+    [warn_copr_priority]="Priorität für COPR %s konnte nicht gesetzt werden"
     [info_minimal_skip_repos]="--minimal: Anwendungsquellen werden übersprungen"
     [step_repo]="Paketquelle %s wird hinzugefügt"
     [info_repo_present]="Paketquelle %s ist bereits vorhanden"

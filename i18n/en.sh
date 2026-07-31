@@ -42,6 +42,7 @@ declare -gA MSG=(
     [step_copr]="Enabling COPR %s"
     [info_copr_present]="COPR %s already enabled"
     [fail_copr]="COPR %s could not be enabled"
+    [warn_copr_priority]="Priority for COPR %s could not be set"
     [info_minimal_skip_repos]="--minimal: skipping application repositories"
     [step_repo]="Adding the %s repository"
     [info_repo_present]="%s repository already present"

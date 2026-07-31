@@ -30,16 +30,30 @@ phase_repos() {
     # Hyprland is orphaned in Fedora (last build 0.45.2 on F42, absent from
     # F43/F44), so solopasha/hyprland is not a convenience — it is the only
     # maintained source for the current release.
-    local copr
-    while read -r copr; do
-        [[ -z "$copr" ]] && continue
+    local entry
+    while read -r entry; do
+        [[ -z "$entry" ]] && continue
+        # owner/project[:priority]
+        local copr="${entry%%:*}" prio=""
+        [[ "$entry" == *:* ]] && prio="${entry##*:}"
         local repoid="copr:copr.fedorainfracloud.org:${copr%%/*}:${copr##*/}"
+
         if _repo_enabled "$repoid"; then
             info "$(msg info_copr_present "$copr")"
-            continue
+        else
+            step "$(msg step_copr "$copr")"
+            run sudo dnf copr enable -y "$copr" || { fail "$(msg fail_copr "$copr")"; continue; }
         fi
-        step "$(msg step_copr "$copr")"
-        run sudo dnf copr enable -y "$copr" || fail "$(msg fail_copr "$copr")"
+
+        # Priority decides which repository wins when two offer the same
+        # package. Without it, two Hyprland COPRs silently fight over hyprutils
+        # and the resolution depends on version numbers alone — which is how
+        # you end up with a compositor from one repo and its libraries from
+        # another. Lower number wins.
+        if [[ -n "$prio" ]]; then
+            run sudo dnf config-manager setopt "$repoid.priority=$prio" \
+                || warn "$(msg warn_copr_priority "$copr")"
+        fi
     done < <(read_list "$REPO_DIR/packages/copr.txt")
 
     (( MINIMAL )) && { info "$(msg info_minimal_skip_repos)"; return 0; }
