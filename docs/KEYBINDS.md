@@ -71,6 +71,25 @@ These are not in `settings.lua`: ten workspace switches and four focus direction
 | `SUPER + left mouse` | Drag window |
 | `SUPER + right mouse` | Resize window by dragging |
 
+## The status area
+
+The right-hand end of the bar works like the Windows one: an icon you can
+click, and a small panel drops down under it. Clicking the same icon again puts
+it away, as does Escape or a click anywhere else.
+
+| Icon | Left click | Middle click | Right click |
+|---|---|---|---|
+| Speaker | Volume, mute, output device | Mute | pavucontrol |
+| Network | Connection, and Wi-Fi networks to join | — | nm-connection-editor |
+| Clock | This month and the day's appointments | — | GNOME Calendar |
+| Battery | *(laptops only — hidden when there is no battery)* | — | — |
+
+Scrolling on the speaker changes the volume without opening anything.
+
+Bluetooth lives in the system tray, next to whatever else puts an icon there.
+CPU, memory and temperature are deliberately not in the bar; `btop` shows them
+properly, and a number you only ever glance at does not earn permanent space.
+
 ## Media and hardware keys
 
 | Keys | Action |

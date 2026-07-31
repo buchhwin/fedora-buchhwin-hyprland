@@ -98,7 +98,16 @@ EOF
     else
         run sudo dnf swap ffmpeg-free ffmpeg --allowerasing -y || fail "$(msg fail_ffmpeg)"
     fi
-    run_quiet sudo dnf update @multimedia \
+    # `dnf update @multimedia` was wrong and warned on every single run: dnf5
+    # only updates a group that is already INSTALLED, and this one never is on
+    # a Fedora Server base, so it failed with "No match for argument:
+    # multimedia" — the group exists, it just had nothing to update. The step
+    # therefore never installed a codec in its life while claiming to.
+    #
+    # `group install` is what was meant. It pulls the RPM Fusion pieces the
+    # earlier steps enabled the repositories for — a52, mpeg2, aptX, HEVC —
+    # about 20 MB.
+    run_quiet sudo dnf group install multimedia \
         --setopt="install_weak_deps=False" \
         --exclude=PackageKit-gstreamer-plugin -y || warn "$(msg warn_multimedia)"
 

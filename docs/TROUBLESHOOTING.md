@@ -76,10 +76,40 @@ mokutil --sb-state
 With Secure Boot enabled the module has to be signed and its key enrolled.
 The installer warns about this; it cannot do it for you.
 
+## I cannot resize a window by dragging its edge
+
+That is switched off on purpose. Hyprland's edge-resize comes with a grab area
+that extends fifteen pixels past the visible border, which puts it directly
+over the close and maximize buttons of most windows — aiming for the X then
+drags the window instead of closing it.
+
+Resize with `SUPER + right mouse` (anywhere in the window, no aiming needed),
+with `SUPER + CTRL + h j k l`, or snap with `SUPER + arrows`. If you want the
+edges back anyway:
+
+```bash
+bhctl set layout.resize_on_border=true
+```
+
+## Clicking the clock or the speaker does nothing
+
+The popups need `gtk4-layer-shell`, and it has to be loaded before libwayland —
+`buchhwin-panel` arranges that itself by re-executing with `LD_PRELOAD` set. To
+see what went wrong, run it in a terminal where you can read the error:
+
+```bash
+~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel calendar
+```
+
+`GtkWindow is not a layer surface` means the preload did not take: the popup
+still opens, but as an ordinary window rather than anchored under the bar.
+
 ## Everything is slow, animations stutter
 
-In a virtual machine that is expected: without a GPU, rendering happens on the
-CPU. The installer switches blur, shadows and animations off there.
+In a virtual machine **without** VirGL that is expected: rendering happens on
+the CPU, and the installer switches blur, shadows and animations off there. A
+VM with VirGL (`vga: virtio-gl` under Proxmox, plus `libgl1`/`libegl1` on the
+host) is treated as real hardware and keeps the full look.
 
 On real hardware:
 
