@@ -29,10 +29,16 @@
     // point of a fixed 1-5 / 6-10 assignment.
     "output": ["*"],
 
+    // Windows opened from the bar run in their OWN scope, not in waybar's.
+    // Waybar starts a click command as its child, so it lands in
+    // buchhwin-bar.service's cgroup — and anything that restarts the bar then
+    // takes that window with it. That is exactly how pressing Apply in the
+    // settings window closed the settings window. Measured, not guessed: the
+    // process was in cgroup buchhwin-bar.service.
     "custom/logo": {
         "format": "󰣛",
         "tooltip-format": "Applications",
-        "on-click": "rofi -show drun"
+        "on-click": "systemd-run --user --scope -q sh -c 'rofi -show drun'"
     },
 
     "hyprland/workspaces": {
@@ -89,7 +95,7 @@
         "format-icons": { "headphone": "󰋋", "headset": "󰋎", "default": ["󰕿", "󰖀", "󰕾"] },
         "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel audio",
         "on-click-middle": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
-        "on-click-right": "pavucontrol",
+        "on-click-right": "systemd-run --user --scope -q sh -c 'pavucontrol'",
         "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 2%+",
         "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-",
         "tooltip-format": "{desc}"
@@ -100,7 +106,7 @@
         "format-disabled": "󰂲",
         "format-connected": "󰂱 {num_connections}",
         "tooltip-format-connected": "{device_enumerate}",
-        "on-click": "blueman-manager"
+        "on-click": "systemd-run --user --scope -q sh -c 'blueman-manager'"
     },
 
     // Ethernet shows the icon and nothing else. The interface name ("ens18",
@@ -116,14 +122,14 @@
         "tooltip-format-ethernet": "Wired · {ifname}\n{ipaddr}/{cidr}",
         "tooltip-format-disconnected": "Not connected",
         "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel network",
-        "on-click-right": "nm-connection-editor",
+        "on-click-right": "systemd-run --user --scope -q sh -c 'nm-connection-editor'",
         "interval": 5
     },
 
     "cpu": {
         "format": "󰻠 {usage}%",
         "interval": 3,
-        "on-click": "kitty -e btop",
+        "on-click": "systemd-run --user --scope -q sh -c 'kitty -e btop'",
         "states": { "warning": 70, "critical": 90 }
     },
 
@@ -164,7 +170,7 @@
         "format": "{:%H:%M  %a %d.%m.}",
         "tooltip": false,
         "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel calendar",
-        "on-click-right": "gnome-calendar"
+        "on-click-right": "systemd-run --user --scope -q sh -c 'gnome-calendar'"
     },
 
     // Only visible while something is mounted, so it costs no space on a
@@ -173,7 +179,7 @@
         "exec": "~/.local/share/fedora-buchhwin-hyprland/scripts/drives.py waybar",
         "return-type": "json",
         "interval": 30,
-        "on-click": "nemo ~/Drives",
+        "on-click": "systemd-run --user --scope -q sh -c 'nemo ~/Drives'",
         "escape": false
     },
 
@@ -183,7 +189,7 @@
     "custom/settings": {
         "format": "󰒓",
         "tooltip-format": "Settings",
-        "on-click": "buchhwin-control-center"
+        "on-click": "systemd-run --user --scope -q sh -c 'buchhwin-control-center'"
     },
 
     "custom/notifications": {

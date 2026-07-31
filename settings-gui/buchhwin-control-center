@@ -23,6 +23,7 @@ import gettext
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 import gi
@@ -88,10 +89,27 @@ class Settings:
         self._dirty = False
 
     def apply(self) -> None:
-        """Write, then make it visible immediately."""
+        """Write the file, then run everything that turns it into a desktop.
+
+        This used to write settings.lua, reload Hyprland and restart the bar —
+        and nothing else. That made two settings simply not work: the pointer
+        theme reaches GTK and gsettings only through theme/apply-theme.py, and
+        the dock exists only once scripts/dock.py has generated its config and
+        unit. Both ran in the installer and nowhere else, so changing them in
+        this window did exactly nothing.
+
+        `systemctl --user reload`, NOT reload-or-restart. The bar's unit has an
+        ExecReload (SIGUSR2), and a restart would kill everything in the unit's
+        cgroup — which includes this very window when it was opened from the
+        bar's own settings button. Apply was shooting itself.
+        """
         self.save()
+        run(sys.executable, str(REPO / "theme" / "apply-theme.py"))
+        run(sys.executable, str(REPO / "scripts" / "dock.py"), "sync")
+        run(str(REPO / "scripts" / "wallpaper.sh"), "sync-timer")
+        run(sys.executable, str(REPO / "scripts" / "drives.py"), "sync")
         run("hyprctl", "reload")
-        run("systemctl", "--user", "reload-or-restart", "buchhwin-bar.service")
+        run("systemctl", "--user", "reload", "buchhwin-bar.service")
 
 
 def run(*cmd: str) -> None:
@@ -254,21 +272,52 @@ class Window(Adw.ApplicationWindow):
         self.toasts = Adw.ToastOverlay()
         self.set_content(self.toasts)
 
-        view = Adw.ToolbarView()
-        self.toasts.set_child(view)
+        # The page list is down the side, not across the top. With fifteen
+        # pages a header row runs out of width and truncates every title to an
+        # ellipsis — which is what it was doing. A sidebar shows all of them,
+        # in full, and has room for more.
+        self.stack = Adw.ViewStack()
 
+        sidebar_view = Adw.ToolbarView()
+        sidebar_header = Adw.HeaderBar()
+        sidebar_header.set_title_widget(Adw.WindowTitle(title=_("Settings")))
+        sidebar_view.add_top_bar(sidebar_header)
+
+        # A hand-built list rather than Gtk.StackSidebar: that widget only
+        # takes a Gtk.Stack, and Adw.ViewStack is not one — passing it produces
+        # "invalid (NULL) pointer instance" and the window never appears.
+        # Building it here also means the sidebar can show the page icons,
+        # which StackSidebar cannot.
+        self.sidebar = Gtk.ListBox()
+        self.sidebar.add_css_class("navigation-sidebar")
+        self.sidebar.set_vexpand(True)
+        self.sidebar.connect("row-selected", self._on_page_selected)
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_child(self.sidebar)
+        sidebar_view.set_content(scroller)
+
+        content_view = Adw.ToolbarView()
         header = Adw.HeaderBar()
         apply_btn = Gtk.Button(label=_("Apply"))
         apply_btn.add_css_class("suggested-action")
         apply_btn.connect("clicked", self.on_apply)
         header.pack_end(apply_btn)
-        view.add_top_bar(header)
+        content_view.add_top_bar(header)
+        content_view.set_content(self.stack)
 
-        self.stack = Adw.ViewStack()
-        switcher = Adw.ViewSwitcher(stack=self.stack,
-                                    policy=Adw.ViewSwitcherPolicy.WIDE)
-        header.set_title_widget(switcher)
-        view.set_content(self.stack)
+        split = Adw.NavigationSplitView(
+            sidebar=Adw.NavigationPage(child=sidebar_view, title=_("Settings")),
+            content=Adw.NavigationPage(child=content_view, title=_("Settings")),
+        )
+        # Collapse on a narrow window so the app stays usable on a small screen
+        # instead of showing a sidebar and a sliver of content.
+        breakpoint_ = Adw.Breakpoint.new(
+            Adw.BreakpointCondition.parse("max-width: 700sp"))
+        breakpoint_.add_setter(split, "collapsed", True)
+        self.add_breakpoint(breakpoint_)
+        self.toasts.set_child(split)
 
         self._page_look()
         self._page_theme()
@@ -290,15 +339,57 @@ class Window(Adw.ApplicationWindow):
     def add_page(self, widget, name, title, icon):
         self.stack.add_titled_with_icon(widget, name, title, icon)
 
+        row = Gtk.ListBoxRow()
+        row.set_name(name)
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        box.set_margin_top(8)
+        box.set_margin_bottom(8)
+        box.set_margin_start(10)
+        box.set_margin_end(10)
+        box.append(Gtk.Image.new_from_icon_name(icon))
+        box.append(Gtk.Label(label=title, xalign=0))
+        row.set_child(box)
+        self.sidebar.append(row)
+
+        # The first page added is the one shown, so the sidebar and the content
+        # agree from the start rather than after the first click.
+        if self.sidebar.get_row_at_index(1) is None:
+            self.sidebar.select_row(row)
+
+    def _on_page_selected(self, _listbox, row):
+        if row is not None:
+            self.stack.set_visible_child_name(row.get_name())
+
     def toast(self, text: str) -> None:
         self.toasts.add_toast(Adw.Toast(title=text, timeout=3))
 
-    def on_apply(self, _btn=None):
+    def on_apply(self, btn=None):
         if not self.s.dirty:
             self.toast(_("Nothing to apply"))
             return
-        self.s.apply()
-        self.toast(_("Applied"))
+
+        # Off the main thread: apply() runs six subprocesses and takes a second
+        # or two. Doing that inline freezes the window mid-click, which reads
+        # as a crash rather than as work.
+        if btn is not None:
+            btn.set_sensitive(False)
+            btn.set_label(_("Applying…"))
+
+        def done() -> bool:
+            if btn is not None:
+                btn.set_sensitive(True)
+                btn.set_label(_("Apply"))
+            self.toast(_("Applied"))
+            return False
+
+        def work() -> None:
+            try:
+                self.s.apply()
+            except Exception as exc:                      # noqa: BLE001
+                print(f"apply failed: {exc}", file=sys.stderr)
+            GLib.idle_add(done)
+
+        threading.Thread(target=work, daemon=True).start()
 
     # -- pages ---------------------------------------------------------------
     def _page_look(self):
