@@ -135,16 +135,45 @@ run_quiet() {
 #
 # Asked for once, up front, then kept alive by a background refresher. The old
 # script asked for the password at random points, including at the very end.
+#
+# NOT `sudo -v`. That validates against EVERY matching sudoers rule, so on a
+# machine where the user is both in wheel (password required) and covered by a
+# NOPASSWD rule, it insists on a password that no individual command actually
+# needs — and then fails outright without a TTY:
+#
+#     User buchhwin may run the following commands:
+#         (ALL) ALL                <- wheel, wants a password
+#         (ALL) NOPASSWD: ALL      <- what every command actually uses
+#
+# So: ask `sudo -n true` first. If passwordless sudo works, nothing needs to be
+# prompted for and no keep-alive is necessary. Only otherwise fall back to an
+# interactive prompt — and refuse that outright when unattended, instead of
+# hanging on a prompt nobody will see.
 # ---------------------------------------------------------------------------
 SUDO_KEEPALIVE_PID=""
+SUDO_PASSWORDLESS=0
 
 sudo_init() {
     (( DRY_RUN )) && return 0
     if [[ $EUID -eq 0 ]]; then
         die "$(msg err_running_as_root)"
     fi
+
+    if sudo -n true 2>/dev/null; then
+        SUDO_PASSWORDLESS=1
+        ok "$(msg ok_sudo_passwordless)"
+        return 0
+    fi
+
+    if (( UNATTENDED )); then
+        die "$(msg err_sudo_unattended)"
+    fi
+
     sudo -v || die "$(msg err_no_sudo)"
-    ( while true; do sudo -n true; sleep 50; kill -0 "$$" 2>/dev/null || exit; done ) &
+    # Refresh the timestamp while long package installs run, so the password is
+    # asked for once at the start rather than again halfway through.
+    ( while true; do sudo -n true 2>/dev/null; sleep 50
+        kill -0 "$$" 2>/dev/null || exit; done ) &
     SUDO_KEEPALIVE_PID=$!
 }
 

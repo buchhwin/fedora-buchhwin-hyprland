@@ -15,6 +15,8 @@ declare -gA MSG=(
     [err_trap]="Stopped at line %s (exit code %s). Nothing further was attempted."
     [err_running_as_root]="Run this as your normal user, not as root. sudo is used where it is needed."
     [err_no_sudo]="sudo is required and the password was not accepted."
+    [ok_sudo_passwordless]="sudo works without a password"
+    [err_sudo_unattended]="Unattended mode needs passwordless sudo. Either run without --unattended, or add a NOPASSWD rule for this user."
     [err_aborted]="Aborted."
 
     # --- preflight -----------------------------------------------------------

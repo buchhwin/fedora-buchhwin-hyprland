@@ -10,6 +10,8 @@ declare -gA MSG=(
     [err_trap]="Abbruch in Zeile %s (Rückgabewert %s). Danach wurde nichts mehr versucht."
     [err_running_as_root]="Bitte als normaler Benutzer ausführen, nicht als root. sudo wird dort verwendet, wo es nötig ist."
     [err_no_sudo]="sudo wird benötigt und das Passwort wurde nicht angenommen."
+    [ok_sudo_passwordless]="sudo funktioniert ohne Passwort"
+    [err_sudo_unattended]="Der unbeaufsichtigte Modus braucht sudo ohne Passwort. Entweder ohne --unattended starten oder für diesen Benutzer eine NOPASSWD-Regel eintragen."
     [err_aborted]="Abgebrochen."
 
     [sec_preflight]="System wird geprüft"
