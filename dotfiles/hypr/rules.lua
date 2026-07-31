@@ -120,8 +120,14 @@ end
 -- maximized on startup, which in a tiling layout is meaningless noise.
 -- Fullscreen is a different event and is deliberately left alone, otherwise
 -- every game's fullscreen key would stop working.
+--
+-- ⚠️ NOT applied to floating windows. This matched class = ".*", i.e. every
+-- window, which also swallows the maximize request from a titlebar button —
+-- so the maximize button that GTK now draws would have done nothing at all.
+-- On a tiling workspace the noise is what we want gone; on a floating one the
+-- button has to work, because there "maximize" means something.
 hl.window_rule({
-    name = "suppress-maximize", match = { class = ".*" },
+    name = "suppress-maximize", match = { class = ".*", float = false },
     suppress_event = "maximize",
 })
 

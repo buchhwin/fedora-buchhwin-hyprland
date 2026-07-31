@@ -70,6 +70,33 @@ def expand_path(raw: str) -> Path:
     )
 
 
+_SETTINGS_CACHE: dict | None = None
+
+
+def _all_settings() -> dict:
+    """Read settings.lua once, not once per key.
+
+    Every call to settings.py spawns Python AND a Lua interpreter. Four keys
+    meant four of those, and with the rest of a render that pushed this script
+    past the settings app's 20-second budget for a single step — Apply reported
+    "theme: timed out" and skipped it. One `dump` costs the same as one `get`.
+    """
+    global _SETTINGS_CACHE
+    if _SETTINGS_CACHE is not None:
+        return _SETTINGS_CACHE
+    _SETTINGS_CACHE = {}
+    script = Path(__file__).resolve().parent.parent / "scripts" / "settings.py"
+    if script.exists():
+        try:
+            out = subprocess.run([sys.executable, str(script), "dump"],
+                                 capture_output=True, text=True, check=False,
+                                 timeout=15).stdout
+            _SETTINGS_CACHE = json.loads(out) if out.strip() else {}
+        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            _SETTINGS_CACHE = {}
+    return _SETTINGS_CACHE
+
+
 def user_setting(key: str, fallback: str) -> str:
     """Read one value out of settings.lua, or fall back.
 
@@ -78,19 +105,14 @@ def user_setting(key: str, fallback: str) -> str:
     a theme switch would silently reset it. scripts/settings.py already knows
     how to read that file; there is no second parser here.
     """
-    script = Path(__file__).resolve().parent.parent / "scripts" / "settings.py"
-    if not script.exists():
+    node = _all_settings()
+    for part in key.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return fallback
+        node = node[part]
+    if node is None or isinstance(node, (dict, list)):
         return fallback
-    try:
-        out = subprocess.run([sys.executable, str(script), "get", key],
-                             capture_output=True, text=True, check=False,
-                             timeout=10).stdout.strip()
-    except (OSError, subprocess.TimeoutExpired):
-        return fallback
-    # settings.py prints "not found: ..." to stdout when there is no file yet.
-    if not out or out.startswith("not found") or out == "None":
-        return fallback
-    return out
+    return str(node)
 
 
 def build_context(palette: dict, accent: str) -> dict:
@@ -99,11 +121,23 @@ def build_context(palette: dict, accent: str) -> dict:
         sys.exit(f"unknown accent '{accent}'. Available: {', '.join(sorted(colors))}")
     ctx = dict(colors)
     ctx["accent"] = colors[accent]
+    dark = bool(palette["dark"])
     ctx["_meta"] = {
         "flavour": palette["name"],
         "accent_name": accent,
-        "is_dark": "true" if palette["dark"] else "false",
-        "gtk_scheme": "prefer-dark" if palette["dark"] else "default",
+        "is_dark": "true" if dark else "false",
+        "gtk_scheme": "prefer-dark" if dark else "default",
+        # Derived here and NOWHERE else. The GTK3 template used to hard-code
+        # adw-gtk3-dark, Papirus-Dark and prefer-dark-theme=1 while
+        # apply_gsettings() worked it out properly — so a light palette got a
+        # dark GTK3 theme and dark icons, and Latte simply looked broken.
+        # One source, three consumers.
+        "gtk_theme": "adw-gtk3-dark" if dark else "adw-gtk3",
+        "icon_theme": "Papirus-Dark" if dark else "Papirus-Light",
+        "prefer_dark": "1" if dark else "0",
+        # Window buttons. GTK's default is "appmenu:close" — a close button and
+        # nothing else, which is why no window had minimize or maximize.
+        "button_layout": "appmenu:minimize,maximize,close",
         "cursor_theme": user_setting("look.cursor_theme", "breeze_cursors"),
         "cursor_size": user_setting("look.cursor_size", "24"),
     }
@@ -249,14 +283,17 @@ def apply_gsettings(ctx: dict) -> None:
     meta = ctx["_meta"]
     pairs = [
         ("org.gnome.desktop.interface", "color-scheme", meta["gtk_scheme"]),
-        ("org.gnome.desktop.interface", "gtk-theme", "adw-gtk3-dark"
-            if meta["is_dark"] == "true" else "adw-gtk3"),
-        ("org.gnome.desktop.interface", "icon-theme", "Papirus-Dark"
-            if meta["is_dark"] == "true" else "Papirus-Light"),
+        # Same values the templates use, from the same place — they used to be
+        # worked out twice and disagreed.
+        ("org.gnome.desktop.interface", "gtk-theme", meta["gtk_theme"]),
+        ("org.gnome.desktop.interface", "icon-theme", meta["icon_theme"]),
         ("org.gnome.desktop.interface", "cursor-theme", meta["cursor_theme"]),
         ("org.gnome.desktop.interface", "cursor-size", meta["cursor_size"]),
         ("org.gnome.desktop.interface", "font-name", "Inter 11"),
         ("org.gnome.desktop.interface", "monospace-font-name", "JetBrainsMono Nerd Font 11"),
+        # The schema that actually controls the titlebar buttons for GTK4 and
+        # libadwaita. It was never touched, so every window had close only.
+        ("org.gnome.desktop.wm.preferences", "button-layout", meta["button_layout"]),
     ]
     for schema, key, value in pairs:
         subprocess.run(["gsettings", "set", schema, key, value],

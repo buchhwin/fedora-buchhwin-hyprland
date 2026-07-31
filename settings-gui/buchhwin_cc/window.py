@@ -18,7 +18,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from .pages import (about, accounts, apps, autostart, defaults, displays,  # noqa: E402
                     drives, input as input_page, keys, look, network, power,
@@ -42,6 +42,7 @@ class Window(Adw.ApplicationWindow):
         self.s = settings
         self.set_title(_("Settings"))
         self._page_titles: dict[str, str] = {}
+        self._index: list[dict] = []
 
         self.toasts = Adw.ToastOverlay()
         self.set_content(self.toasts)
@@ -57,6 +58,17 @@ class Window(Adw.ApplicationWindow):
         sidebar_header.set_title_widget(Adw.WindowTitle(title=_("Settings")))
         sidebar_view.add_top_bar(sidebar_header)
 
+        # Search across every page. Sixteen pages is past the point where you
+        # can remember which one holds "blur strength", and hunting for a
+        # setting is the thing people actually do in a settings window.
+        self.search = Gtk.SearchEntry(placeholder_text=_("Search settings"))
+        self.search.set_margin_start(6)
+        self.search.set_margin_end(6)
+        self.search.set_margin_bottom(6)
+        self.search.connect("search-changed", self._on_search)
+        self.search.connect("stop-search", lambda _e: self.search.set_text(""))
+        sidebar_view.add_top_bar(self.search)
+
         # A hand-built list rather than Gtk.StackSidebar: that widget only
         # takes a Gtk.Stack, and Adw.ViewStack is not one — passing it produces
         # "invalid (NULL) pointer instance" and the window never appears.
@@ -67,10 +79,21 @@ class Window(Adw.ApplicationWindow):
         self.sidebar.set_vexpand(True)
         self.sidebar.connect("row-selected", self._on_page_selected)
 
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scroller.set_child(self.sidebar)
-        sidebar_view.set_content(scroller)
+        # The results list replaces the page list while searching. Two lists
+        # rather than one that changes meaning: the page list keeps its
+        # selection, so clearing the search puts you back where you were.
+        self.results = Gtk.ListBox()
+        self.results.add_css_class("navigation-sidebar")
+        self.results.set_vexpand(True)
+        self.results.connect("row-activated", self._on_result_activated)
+
+        self._sidebar_stack = Gtk.Stack()
+        for child, name in ((self.sidebar, "pages"), (self.results, "results")):
+            scroller = Gtk.ScrolledWindow()
+            scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            scroller.set_child(child)
+            self._sidebar_stack.add_named(scroller, name)
+        sidebar_view.set_content(self._sidebar_stack)
 
         content_view = Adw.ToolbarView()
         header = Adw.HeaderBar()
@@ -104,6 +127,11 @@ class Window(Adw.ApplicationWindow):
         for module in PAGES:
             module.build(self)
 
+        # Ctrl+F, and plain typing, land in the search box.
+        controller = Gtk.EventControllerKey()
+        controller.connect("key-pressed", self._on_key)
+        self.add_controller(controller)
+
     # -- helpers -------------------------------------------------------------
 
     def add_page(self, widget, name, title, icon):
@@ -113,6 +141,7 @@ class Window(Adw.ApplicationWindow):
         row.set_name(name)
         # Remembered so the content header can name the page that is showing.
         self._page_titles[name] = title
+        self._index_page(widget, name, title)
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         box.set_margin_top(8)
         box.set_margin_bottom(8)
@@ -127,6 +156,82 @@ class Window(Adw.ApplicationWindow):
         # agree from the start rather than after the first click.
         if self.sidebar.get_row_at_index(1) is None:
             self.sidebar.select_row(row)
+
+    # -- search --------------------------------------------------------------
+
+    def _index_page(self, widget, name: str, title: str) -> None:
+        """Record every row on a page so the search can find it.
+
+        Walks the finished widget tree instead of asking the page modules to
+        register their rows. Sixteen modules would each need the same three
+        lines, and every future page would need them too — and the one that
+        forgot would simply be unfindable, with nothing to show that it was.
+        """
+        def walk(widget):
+            child = widget.get_first_child()
+            while child is not None:
+                if isinstance(child, Adw.PreferencesRow):
+                    row_title = child.get_title() or ""
+                    subtitle = ""
+                    if hasattr(child, "get_subtitle"):
+                        subtitle = child.get_subtitle() or ""
+                    if row_title:
+                        self._index.append({
+                            "page": name, "page_title": title,
+                            "title": row_title, "subtitle": subtitle,
+                            "row": child,
+                        })
+                walk(child)
+                child = child.get_next_sibling()
+        walk(widget)
+
+    def _on_key(self, _c, keyval, _code, state):
+        ctrl = state & Gdk.ModifierType.CONTROL_MASK
+        if ctrl and keyval in (Gdk.KEY_f, Gdk.KEY_F):
+            self.search.grab_focus()
+            return True
+        return False
+
+    def _on_search(self, entry) -> None:
+        needle = entry.get_text().strip().lower()
+        if not needle:
+            self._sidebar_stack.set_visible_child_name("pages")
+            return
+
+        while (row := self.results.get_row_at_index(0)) is not None:
+            self.results.remove(row)
+
+        matches = [e for e in self._index
+                   if needle in e["title"].lower()
+                   or needle in e["subtitle"].lower()
+                   or needle in e["page_title"].lower()][:40]
+
+        for entry_ in matches:
+            row = Adw.ActionRow(title=entry_["title"],
+                                subtitle=entry_["page_title"],
+                                activatable=True)
+            row._target = entry_
+            self.results.append(row)
+
+        if not matches:
+            self.results.append(Adw.ActionRow(title=_("Nothing found"),
+                                              subtitle=needle))
+        self._sidebar_stack.set_visible_child_name("results")
+
+    def _on_result_activated(self, _listbox, row) -> None:
+        target = getattr(row, "_target", None)
+        if target is None:
+            return
+        i = 0
+        while (page_row := self.sidebar.get_row_at_index(i)) is not None:
+            if page_row.get_name() == target["page"]:
+                self.sidebar.select_row(page_row)
+                break
+            i += 1
+        # grab_focus scrolls the row into view, which is the whole point of
+        # jumping to it — landing on the right page but at the top would leave
+        # you hunting again.
+        GLib.idle_add(target["row"].grab_focus)
 
     def _on_page_selected(self, _listbox, row):
         if row is None:
