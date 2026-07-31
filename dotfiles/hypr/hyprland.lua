@@ -277,6 +277,10 @@ hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 6.5 * sp, spri
 ------------------------------------------------------------------------------
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 hl.gesture({ fingers = 4, direction = "up",         action = "special" })
+-- Three fingers down closes, four fingers horizontally moves the window with
+-- you. Both are what a trackpad user reaches for without being told.
+hl.gesture({ fingers = 3, direction = "down",       action = "close" })
+hl.gesture({ fingers = 4, direction = "horizontal", action = "move" })
 
 ------------------------------------------------------------------------------
 -- Bindings and rules

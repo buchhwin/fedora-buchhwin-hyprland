@@ -245,6 +245,10 @@ return {
     -- "slideshow" everything in a folder, in turn
     -- =====================================================================
     wallpaper = {
+        -- The login screen shows the same picture as the desktop. Needs
+        -- passwordless sudo, and is skipped silently where there is none —
+        -- changing a wallpaper must never pop a password dialog.
+        sddm_background = true,
         mode        = "slideshow",
         path        = "",            -- static: the file
         folder      = "",            -- slideshow: the folder (searched recursively)

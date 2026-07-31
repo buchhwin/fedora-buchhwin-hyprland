@@ -21,8 +21,10 @@
     // shows them properly (SUPER+Escape). Bluetooth moved into the tray, which
     // is also where Windows keeps it.
     "modules-right":  ["tray", "custom/recording", "custom/drives",
-                       "pulseaudio", "bluetooth", "network", "battery", "clock",
-                       "custom/notifications", "custom/settings", "custom/power"],
+                       "pulseaudio", "bluetooth", "network", "power-profiles-daemon",
+                       "battery", "clock",
+                       "custom/updates", "custom/notifications", "custom/settings",
+                       "custom/power"],
 
     // One bar per screen, and each shows only its own workspaces. Without
     // all-outputs:false every screen shows every workspace, which defeats the
@@ -201,6 +203,28 @@
         // application.
         "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel quick",
         "on-click-right": "systemd-run --user --scope -q sh -c 'buchhwin-control-center'"
+    },
+
+    // Only visible when there is something to install, so it costs no space on
+    // an up-to-date machine. The count is cached by the script — asking dnf on
+    // every poll would stall the bar for tens of seconds.
+    "custom/updates": {
+        "exec": "~/.local/share/fedora-buchhwin-hyprland/scripts/updates.sh waybar",
+        "return-type": "json",
+        "interval": 900,
+        "on-click": "systemd-run --user --scope -q sh -c 'buchhwin-control-center'",
+        "escape": false
+    },
+
+    // The power profile, on laptops. Absent where power-profiles-daemon is not
+    // running, which is most desktops.
+    "power-profiles-daemon": {
+        "format": "{icon}",
+        "tooltip-format": "Power profile: {profile}",
+        "format-icons": {
+            "default": "󰈐", "performance": "󰓅",
+            "balanced": "󰾅", "power-saver": "󰌪"
+        }
     },
 
     "custom/notifications": {

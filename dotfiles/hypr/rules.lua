@@ -60,6 +60,14 @@ for _, id in ipairs(layout.floating_workspaces or {}) do
     })
 end
 
+-- The drop-down terminal. on_created_empty spawns it the first time the
+-- workspace is shown, so the key works immediately after login without a
+-- terminal sitting in memory for a session in which it is never used.
+hl.workspace_rule({
+    workspace = "special:dropterm",
+    on_created_empty = (S.programs and S.programs.terminal) or "kitty",
+})
+
 -- Smart gaps: a single tiled window gets nearly the whole screen — but not
 -- quite. A window flush against the screen edge reads as broken rather than as
 -- roomy, and it loses the rounded corners that hold the whole look together.

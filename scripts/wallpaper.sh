@@ -68,7 +68,29 @@ apply_to() {
     # Only once per change, not once per monitor: with three screens this would
     # otherwise re-render every config three times and reload the bar three
     # times for one picture.
-    [[ -z "$monitor" ]] && recolour_from "$file"
+    if [[ -z "$monitor" ]]; then
+        recolour_from "$file"
+        sddm_background "$file"
+    fi
+}
+
+sddm_background() {
+    # The login screen shows the same picture as the desktop. Without this the
+    # first thing you see after a reboot is a different wallpaper from the one
+    # you chose, which reads as two machines rather than one.
+    #
+    # Needs root, so it is skipped rather than prompting: a wallpaper change
+    # must never pop a password dialog. `sudo -n` succeeds only where sudo is
+    # already passwordless, which is how the installer set this machine up.
+    [[ "$(get wallpaper.sddm_background)" == "True" ]] || return 0
+    command -v sudo >/dev/null 2>&1 || return 0
+    sudo -n true 2>/dev/null || return 0
+
+    local target=/usr/share/backgrounds/buchhwin-login.png
+    sudo -n install -m 0644 "$1" "$target" 2>/dev/null || return 0
+    sudo -n mkdir -p /etc/sddm.conf.d 2>/dev/null || return 0
+    printf "[Theme]\nCurrentBackground=%s\n" "$target" \
+        | sudo -n tee /etc/sddm.conf.d/30-buchhwin-background.conf >/dev/null 2>&1 || true
 }
 
 recolour_from() {

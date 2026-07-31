@@ -220,3 +220,16 @@ tooltip label { color: @text; padding: 4px; }
 #custom-drives:hover {
     background-color: @pillhover;
 }
+
+/* Updates and the power profile join the pill list. Without this they render
+ * with no background at all, which is the bug the drives module had. */
+#custom-updates, #power-profiles-daemon {
+    background-color: @pillbg;
+    padding: 0 12px;
+    margin: 5px 3px;
+    border-radius: 12px;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+#custom-updates { color: @green; }
+#power-profiles-daemon { color: @yellow; }
+#custom-updates:hover, #power-profiles-daemon:hover { background-color: @pillhover; }

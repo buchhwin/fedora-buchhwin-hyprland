@@ -134,6 +134,14 @@ hl.bind("SUPER + SHIFT + Up",    hl.dsp.exec_cmd(tokens.snap .. " maximize"))
 -- Turn the current workspace into a floating one and back.
 hl.bind("SUPER + SHIFT + Space", hl.dsp.exec_cmd(tokens.floatws))
 
+-- A terminal that drops down over whatever you are doing and goes away again.
+-- Its own special workspace rather than the scratchpad: the scratchpad is for
+-- windows you PUT there, this is one window that is always the same one.
+hl.bind("SUPER + grave", hl.dsp.workspace.toggle_special("dropterm"))
+
+-- Game mode: blur, shadows, animations and gaps off, and back again.
+hl.bind("SUPER + SHIFT + g", hl.dsp.exec_cmd(SCRIPTS .. "/gamemode.sh"))
+
 -- Everything that is open, on one screen. SUPER+Tab because that is the key
 -- every desktop puts it on, and the muscle memory is worth more than novelty.
 hl.bind("SUPER + Tab", hl.dsp.exec_cmd(PANEL_BIN .. " overview"))

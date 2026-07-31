@@ -81,6 +81,27 @@ def caffeine_enabled() -> bool:
     return out.strip() != "active"
 
 
+def firewall_enabled() -> bool | None:
+    """ufw's state, or None when ufw is not installed.
+
+    `ufw status` needs root even to READ, so this asks systemd instead — which
+    any user may do, and which cannot pop a password prompt just because
+    somebody opened the panel.
+    """
+    code, out = run("systemctl", "is-enabled", "ufw.service")
+    if code != 0 and not out:
+        return None
+    code2, active = run("systemctl", "is-active", "ufw.service")
+    return active.strip() == "active"
+
+
+def gamemode_enabled() -> bool:
+    import os
+    from pathlib import Path as _Path
+    state = _Path(os.environ.get("XDG_STATE_HOME", _Path.home() / ".local/state"))
+    return (state / "buchhwin" / "gamemode.json").exists()
+
+
 def brightness() -> int | None:
     """Percent, or None when the machine has no controllable backlight.
 
@@ -186,6 +207,15 @@ class QuickPopup(PanelWindow):
                                caffeine_enabled(), self._toggle_caffeine))
         grid.append(self._tile("Light theme", "weather-clear-symbolic",
                                False, self._toggle_theme, momentary=True))
+
+        # Game mode: blur, shadows, animations and gaps off in one press.
+        grid.append(self._tile("Game mode", "applications-games-symbolic",
+                               gamemode_enabled(), self._toggle_gamemode))
+
+        firewall = firewall_enabled()
+        if firewall is not None:
+            grid.append(self._tile("Firewall", "security-high-symbolic",
+                                   firewall, self._toggle_firewall))
         return grid
 
     def _tile(self, label: str, icon: str, active: bool, on_click,
@@ -265,6 +295,17 @@ class QuickPopup(PanelWindow):
 
     def _toggle_theme(self) -> None:
         launch(["bhctl", "theme", "toggle"], self)
+
+    def _toggle_gamemode(self) -> None:
+        launch(["sh", "-c",
+                "~/.local/share/fedora-buchhwin-hyprland/scripts/gamemode.sh"], self)
+
+    def _toggle_firewall(self) -> None:
+        # Stopping the firewall needs root, so this goes through pkexec and the
+        # session's polkit agent asks properly. Never silently, and never with
+        # a cached password.
+        action = "stop" if firewall_enabled() else "start"
+        launch(["pkexec", "systemctl", action, "ufw.service"], self)
 
     def _set_volume(self, percent: int) -> None:
         run("wpctl", "set-volume", "-l", "1.0",
