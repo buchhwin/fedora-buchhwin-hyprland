@@ -127,7 +127,10 @@ symbol = " "
 [character]
 success_symbol = "[❯](bold green)"
 error_symbol   = "[❯](bold red)"
-vec_symbol     = "[❮](bold mauve)"
+# vicmd_symbol, not vec_symbol. The typo made starship print a warning on
+# every single new prompt — "Unknown key (Did you mean 'vicmd_symbol'?)" —
+# which is the first thing you see in a fresh terminal.
+vicmd_symbol   = "[❮](bold {{mauve}})"
 
 [time]
 disabled = false
