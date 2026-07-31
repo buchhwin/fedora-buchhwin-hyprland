@@ -29,6 +29,28 @@
     "transition-time": 180,
     "hide-on-clear": true,
     "hide-on-action": true,
+
+  // Group notifications by application. Ten build failures from one editor
+  // should be one entry you can expand, not ten entries that push everything
+  // else off the screen — which is exactly what happens without this.
+  "notification-grouping": true,
+
+  // Which notifications get to interrupt, per application. Everything not
+  // listed behaves normally; these are the ones with a known habit.
+  "notification-visibility": {
+    // Screenshots announce themselves and then sit there. The file is already
+    // in the clipboard and the folder, so the popup is pure noise — it stays
+    // in the centre where it can be reviewed.
+    "screenshot": {
+      "state": "transient",
+      "app-name": "Screenshot"
+    },
+    // Spotify's track changes are a stream, not events: one per song, forever.
+    "music": {
+      "state": "transient",
+      "app-name": "(Spotify|spotify)"
+    }
+  },
     "script-fail-notify": true,
 
     "widgets": [
