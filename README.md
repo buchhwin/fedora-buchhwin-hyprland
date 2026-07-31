@@ -17,11 +17,15 @@ to be worth posting.
 ---
 
 ```bash
-curl -fsSLO https://buchhwin.github.io/fedora-buchhwin-hyprland/bootstrap.sh && bash bootstrap.sh
+curl -fsSLO https://raw.githubusercontent.com/buchhwin/fedora-buchhwin-hyprland/main/bootstrap.sh && bash bootstrap.sh
 ```
 
 That is the whole installation. Run it on **Fedora Server**, or on any Fedora
 that has no desktop yet.
+
+No custom ISO, no kickstart file, no boot parameters: download Fedora from
+[fedoraproject.org](https://fedoraproject.org/server/download), install it the
+normal way, then run the line above.
 
 <details>
 <summary>Options, and why this is not <code>curl | bash</code></summary>
@@ -39,7 +43,7 @@ looks like a confirmation step and is not one (`less` exits 0 even when you
 quit with `q`):
 
 ```bash
-curl -fsSLO https://buchhwin.github.io/fedora-buchhwin-hyprland/bootstrap.sh
+curl -fsSLO https://raw.githubusercontent.com/buchhwin/fedora-buchhwin-hyprland/main/bootstrap.sh
 less bootstrap.sh
 bash bootstrap.sh
 ```

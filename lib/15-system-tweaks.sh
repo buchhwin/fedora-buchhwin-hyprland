@@ -87,8 +87,9 @@ EOF
 
     # --- btrfs ---------------------------------------------------------------
     # Only reported, never changed: converting a live filesystem is not
-    # something an installer should do behind your back. The kickstart in
-    # kickstart/buchhwin.ks creates btrfs with zstd:1 from the start.
+    # something an installer should do behind your back. If you want btrfs with
+    # compression, choose it in the Fedora installer — Server defaults to
+    # LVM+xfs, only Workstation defaults to btrfs.
     if ! (( DRY_RUN )); then
         local fstype; fstype="$(findmnt -no FSTYPE / 2>/dev/null || echo unknown)"
         if [[ "$fstype" == "btrfs" ]]; then
