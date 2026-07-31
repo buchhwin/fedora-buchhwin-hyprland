@@ -153,6 +153,30 @@ def saved_connections() -> list[tuple[str, str]]:
     return result
 
 
+def vpn_connections() -> list[dict]:
+    """WireGuard profiles and whether each is up.
+
+    NetworkManager speaks WireGuard natively — no plugin, no wg-quick service.
+    A profile imported with `nmcli connection import type wireguard file x.conf`
+    behaves like any other connection, which is why this is four lines rather
+    than a daemon.
+    """
+    rc, out = nmcli("-t", "-f", "NAME,TYPE,DEVICE", "connection", "show")
+    if rc != 0:
+        return []
+    active = set()
+    rc_a, out_a = nmcli("-t", "-f", "NAME", "connection", "show", "--active")
+    if rc_a == 0:
+        active = {line.strip() for line in out_a.splitlines() if line.strip()}
+    found = []
+    for line in out.splitlines():
+        parts = _split_escaped(line)
+        if len(parts) >= 2 and parts[1] in ("wireguard", "vpn"):
+            found.append({"name": parts[0], "type": parts[1],
+                          "up": parts[0] in active})
+    return found
+
+
 def signal_icon(strength: int) -> str:
     if strength >= 75:
         return "network-wireless-signal-excellent-symbolic"
@@ -251,6 +275,14 @@ class NetworkPopup(PanelWindow):
             # found" there would read like a fault.
             self._box.append(note("No Wi-Fi adapter"))
 
+        # --- VPN --------------------------------------------------------
+        vpns = vpn_connections()
+        if vpns:
+            self._box.append(Gtk.Separator())
+            self._box.append(heading("VPN"))
+            for vpn in vpns:
+                self._box.append(self._vpn_row(vpn))
+
         self._box.append(Gtk.Separator())
 
         settings = Gtk.Button(label="Network settings")
@@ -258,6 +290,33 @@ class NetworkPopup(PanelWindow):
         settings.connect("clicked",
                          lambda _b: launch(["nm-connection-editor"], self))
         self._box.append(settings)
+
+    def _vpn_row(self, vpn: dict) -> Gtk.Widget:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        row.add_css_class("popup-row")
+        row.append(Gtk.Image.new_from_icon_name("network-vpn-symbolic"))
+
+        labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        labels.set_hexpand(True)
+        title = Gtk.Label(label=vpn["name"], xalign=0)
+        labels.append(title)
+        state = Gtk.Label(label="connected" if vpn["up"] else "off", xalign=0)
+        state.add_css_class("popup-subtle")
+        labels.append(state)
+        row.append(labels)
+
+        switch = Gtk.Switch(active=vpn["up"], valign=Gtk.Align.CENTER)
+        switch.connect("notify::active", self._on_vpn_toggle, vpn["name"])
+        row.append(switch)
+        return row
+
+    def _on_vpn_toggle(self, switch, _param, name: str) -> None:
+        # `nmcli connection up` can take a few seconds to hand back, so this is
+        # given room; the popup re-reads afterwards rather than trusting the
+        # switch, because a tunnel that failed to come up must not look on.
+        action = "up" if switch.get_active() else "down"
+        nmcli("connection", action, name, timeout=25)
+        self._populate()
 
     def _saved_list(self, saved) -> Gtk.Widget:
         listbox = Gtk.ListBox()

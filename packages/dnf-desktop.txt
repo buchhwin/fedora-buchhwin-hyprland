@@ -106,3 +106,7 @@ gtk4-layer-shell
 # --- fetch / monitor --------------------------------------------------------
 btop
 fastfetch
+
+# WireGuard. NetworkManager speaks the protocol natively; these are the
+# userspace tools for `wg show` and for generating keys.
+wireguard-tools
