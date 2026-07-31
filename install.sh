@@ -37,6 +37,9 @@ Usage: ./install.sh [options]
                          Available: k8s iac db analysis virt backup
                          Nothing is installed from these unless you ask.
   --no-flatpak           Skip Flathub and all Flatpaks.
+  --no-tweaks            Leave system settings alone (journal size, mDNS,
+                         power profiles, oomd).
+  --no-firewall          Do not install or enable ufw.
   --profile work|showcase
                          Visual profile. "work" is quick and restrained,
                          "showcase" is slower with more blur for screenshots.
@@ -49,7 +52,8 @@ Usage: ./install.sh [options]
   --skip PHASE           Skip this phase (repeatable).
   -h, --help             This text.
 
-Phases: preflight repos base hyprland apps theme dotfiles services vm summary
+Phases: preflight repos tweaks base hyprland apps theme dotfiles services vm
+        firewall summary
 EOF
 }
 
@@ -60,6 +64,8 @@ while [[ $# -gt 0 ]]; do
         --minimal)     MINIMAL=1 ;;
         --with)        WITH_GROUPS+=("${2:?}"); shift ;;
         --no-flatpak)  NO_FLATPAK=1 ;;
+        --no-tweaks)   NO_TWEAKS=1 ;;
+        --no-firewall) NO_FIREWALL=1 ;;
         --profile)     PROFILE="${2:?}"; shift ;;
         --gpu)         GPU="${2:?}"; shift ;;
         --flavour)     THEME_FLAVOUR="${2:?}"; shift ;;
@@ -73,7 +79,7 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-export DRY_RUN UNATTENDED MINIMAL NO_FLATPAK PROFILE GPU LANG_CHOICE
+export DRY_RUN UNATTENDED MINIMAL NO_FLATPAK NO_TWEAKS NO_FIREWALL PROFILE GPU LANG_CHOICE
 export WITH_GROUPS_STR="${WITH_GROUPS[*]:-}"
 export THEME_FLAVOUR THEME_ACCENT TARGET_FEDORA IS_VM
 
@@ -131,6 +137,7 @@ printf '%s%s%s\n' "$C_DIM" "$(msg banner_sub "$THEME_FLAVOUR" "$THEME_ACCENT" "$
 should_run preflight && phase_preflight
 sudo_init
 should_run repos     && phase_repos
+should_run tweaks    && phase_tweaks
 should_run base      && phase_base
 should_run hyprland  && phase_hyprland
 should_run apps      && phase_apps
@@ -138,6 +145,9 @@ should_run theme     && phase_theme
 should_run dotfiles  && phase_dotfiles
 should_run services  && phase_services
 should_run vm        && phase_vm_tweaks
+# The firewall goes last: enabling a default-deny policy mid-run would cut the
+# SSH connection the installer is often running over.
+should_run firewall  && phase_firewall
 
 # Remember the language so bhctl and the GUI agree with the installer.
 if ! (( DRY_RUN )); then

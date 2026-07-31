@@ -184,5 +184,33 @@ WantedBy=graphical-session.target'
         run_quiet sudo systemctl enable bluetooth.service || true
     fi
 
+    # --- keyring unlocks with the login --------------------------------------
+    # This lives HERE and not in the base phase: /etc/pam.d/sddm does not exist
+    # until SDDM is installed in phase 30, so in phase 20 the step silently
+    # found nothing and only took effect on a second run — which nobody would
+    # ever notice.
+    # Without pam_gnome_keyring you get a second password prompt for the keyring
+    # after every login, and every cloud drive stays disconnected until you
+    # answer it. Added idempotently, with a backup, because getting PAM wrong
+    # locks you out of your own machine.
+    step "$(msg step_pam_keyring)"
+    if (( DRY_RUN )); then
+        printf '     %s[dry-run]%s add pam_gnome_keyring to /etc/pam.d/sddm\n' "$C_DIM" "$C_RESET"
+    elif [[ -f /etc/pam.d/sddm ]]; then
+        if grep -q 'pam_gnome_keyring' /etc/pam.d/sddm; then
+            info "$(msg info_pam_present)"
+        else
+            sudo cp -n /etc/pam.d/sddm "/etc/pam.d/sddm.bak-buchhwin"
+            printf '%s\n%s\n' \
+                '-auth       optional     pam_gnome_keyring.so' \
+                '-session    optional     pam_gnome_keyring.so auto_start' \
+                | sudo tee -a /etc/pam.d/sddm >/dev/null
+            ok "$(msg ok_pam_keyring)"
+        fi
+    else
+        warn "$(msg warn_pam_missing)"
+    fi
+
+
     ok "$(msg ok_services)"
 }
