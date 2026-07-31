@@ -156,17 +156,13 @@ WantedBy=graphical-session.target'
     # applet and put two Bluetooth icons in the tray. Checked in a running VM
     # before writing this: pid 1202, parent Hyprland, from XDG autostart.
 
-    # nm-applet's tray icon duplicates the bar's network module, and the
-    # obvious fix does NOT work here: a user-level .desktop with Hidden=true
-    # masks a system autostart entry only for launchers that implement it.
-    # This session's does not — measured, not assumed: with the override in
-    # place nm-applet still came up, in cgroup wayland-wm@Hyprland.service and
-    # with no app-nm-applet@autostart.service to its name, so the entry is
-    # being read straight out of /etc/xdg/autostart.
-    #
-    # Left alone rather than papered over. nm-applet is also NetworkManager's
-    # secret agent, so silencing it by removing the package would trade a
-    # duplicate icon for Wi-Fi prompts that never appear.
+    # No unit for nm-applet either, and it is no longer autostarted: its tray
+    # icon duplicated the bar's own network module. It was OUR settings.lua
+    # autostart list that ran it, not /etc/xdg/autostart — which is why an
+    # earlier attempt to mask it with a user-level Hidden=true entry did
+    # nothing at all, and why the process appeared under the compositor rather
+    # than under a systemd autostart unit. The evidence pointed at the right
+    # process for the wrong reason.
 
     # --- the bar's popups ----------------------------------------------------
     # Resident, because starting Python and GTK4 per click was measured at 1.1

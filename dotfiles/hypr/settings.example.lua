@@ -294,7 +294,16 @@ return {
     -- Autostart — extra programs, on top of the systemd user services
     -- =====================================================================
     autostart = {
-        "nm-applet --indicator",
+        -- nm-applet is deliberately NOT here. Its tray icon says exactly what
+        -- the bar's own network module says, and two network icons side by
+        -- side is the kind of detail that makes a desktop feel unfinished.
+        --
+        -- It is also NetworkManager's secret agent, so this is not free: a
+        -- Wi-Fi password prompt can now only come from something that brings
+        -- its own agent. The network popup does — it connects through
+        -- `nmcli --ask` — and anything more involved goes through
+        -- nm-connection-editor, which stores the secret in the profile.
+        -- Put it back here if you would rather have the icon.
         "blueman-applet",
     },
 

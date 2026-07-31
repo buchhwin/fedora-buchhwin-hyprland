@@ -172,7 +172,10 @@ file is read, changed and written back whole. `bhctl update` never touches it.
 
 ## Documentation
 
+- [GETTING-STARTED.md](docs/GETTING-STARTED.md) — the first ten minutes
+- [WINDOWS.md](docs/WINDOWS.md) — coming from Windows: what carries over
 - [KEYBINDS.md](docs/KEYBINDS.md) — every shortcut
+- [DEFAULTS.md](docs/DEFAULTS.md) — which program opens what (generated)
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the pieces fit, and why
 - [MICROSOFT.md](docs/MICROSOFT.md) — Teams, Outlook and Exchange on Linux
 - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) — when something is wrong

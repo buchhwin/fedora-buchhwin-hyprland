@@ -27,8 +27,13 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: pipx install ruff
-      - run: ruff check theme/apply-theme.py scripts/*.py settings-gui/
-      - run: python -m py_compile theme/apply-theme.py scripts/*.py
+      - run: ruff check theme/apply-theme.py scripts/*.py panel/*.py settings-gui/
+      - run: python -m py_compile theme/apply-theme.py scripts/*.py panel/*.py
+      - name: generated docs are up to date
+        # DEFAULTS.md is generated from settings.example.lua. A hand-edited
+        # copy would drift within a month and nobody would notice, because
+        # nothing would be checking.
+        run: python scripts/gen-defaults-doc.py --check
 
   lua:
     name: Lua
