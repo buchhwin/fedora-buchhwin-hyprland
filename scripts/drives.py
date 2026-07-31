@@ -49,9 +49,19 @@ UNITS = CONFIG / "systemd" / "user"
 BOOKMARKS = CONFIG / "gtk-3.0" / "bookmarks"
 MOUNT_ROOT = HOME / "Drives"
 RUNTIME = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
+STATE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "buchhwin"
 
-BOOKMARK_BEGIN = "# >>> buchhwin drives >>>"
-BOOKMARK_END = "# <<< buchhwin drives <<<"
+# The two lines we USED to wrap our block in. ~/.config/gtk-3.0/bookmarks has
+# no comment syntax — every line is "<uri> <label>" — so the file manager
+# happily showed both markers as bookmarks called ">>> buchhwin" and
+# "<<< buchhwin" in its sidebar. Kept only to clean them out of files that
+# already have them.
+LEGACY_MARKERS = ("# >>> buchhwin drives >>>", "# <<< buchhwin drives <<<")
+
+# What we manage instead: the list of URIs we last wrote. A drive removed from
+# settings.lua is removed from the sidebar because its URI is in here, and
+# anything you bookmarked yourself is never touched because it is not.
+MANAGED = STATE / "drive-bookmarks"
 
 CLOUD_PROVIDERS = {
     "drive":    ("Google Drive", "drive"),
@@ -91,34 +101,36 @@ def save_drives(data: dict, drives: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 # Bookmarks — the reason any of this appears in the sidebar
 # ---------------------------------------------------------------------------
+def bookmark_uri(d: dict) -> str:
+    if d["kind"] == "cloud":
+        return f"file://{MOUNT_ROOT / safe_name(d['name'])}"
+    return network_uri(d)
+
+
 def write_bookmarks(drives: list[dict]) -> None:
-    """Rewrite only our block. Anything the user bookmarked stays untouched."""
+    """Rewrite our own entries. Anything you bookmarked stays untouched."""
     BOOKMARKS.parent.mkdir(parents=True, exist_ok=True)
     existing = BOOKMARKS.read_text().splitlines() if BOOKMARKS.exists() else []
 
-    kept, inside = [], False
-    for line in existing:
-        if line.strip() == BOOKMARK_BEGIN:
-            inside = True
-            continue
-        if line.strip() == BOOKMARK_END:
-            inside = False
-            continue
-        if not inside:
-            kept.append(line)
+    try:
+        previous = set(MANAGED.read_text().split())
+    except OSError:
+        previous = set()
 
-    block = [BOOKMARK_BEGIN]
-    for d in drives:
-        name = d["name"]
-        if d["kind"] == "cloud":
-            block.append(f"file://{MOUNT_ROOT / safe_name(name)} {name}")
-        else:
-            block.append(f"{network_uri(d)} {name}")
-    block.append(BOOKMARK_END)
+    wanted = [(bookmark_uri(d), d["name"]) for d in drives]
+    ours = previous | {uri for uri, _ in wanted}
+
+    kept = [line for line in existing
+            if line.strip() not in LEGACY_MARKERS
+            and line.split(" ", 1)[0] not in ours]
 
     while kept and not kept[-1].strip():
         kept.pop()
+    block = [f"{uri} {name}" for uri, name in wanted]
     BOOKMARKS.write_text("\n".join([*kept, *block]) + "\n")
+
+    STATE.mkdir(parents=True, exist_ok=True)
+    MANAGED.write_text("\n".join(uri for uri, _ in wanted) + "\n")
 
 
 def network_uri(d: dict) -> str:
