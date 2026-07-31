@@ -54,6 +54,19 @@ return {
     -- =====================================================================
     -- Theme
     -- =====================================================================
+    -- =====================================================================
+    -- Weather, shown in the calendar popup
+    --
+    -- Empty means off, and that is the default on purpose: every key-free
+    -- weather source works by looking up whoever asked, so switching this on
+    -- by itself would send this machine's address to a third party the first
+    -- time you opened the calendar. Naming a town is both more private and
+    -- more accurate — a VPN endpoint is not where you are standing.
+    -- =====================================================================
+    weather = {
+        location = "",          -- e.g. "Bremen" or "Bremen,DE"
+    },
+
     theme = {
         -- Derive the whole palette from the current wallpaper, and follow it
         -- on every change including the slideshow. Off by default: a fixed

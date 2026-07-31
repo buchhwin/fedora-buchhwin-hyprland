@@ -21,6 +21,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import GLib, Gtk  # noqa: E402
 
 from popup import PanelWindow, heading, launch, note  # noqa: E402
+import weather  # noqa: E402
 
 # scripts/calendar.py is loaded by PATH, deliberately not by putting scripts/ on
 # sys.path: it is called calendar.py, and a plain `import calendar` would then
@@ -50,6 +51,25 @@ class CalendarPopup(PanelWindow):
         self._calendar.connect("day-selected", lambda _c: self.refresh())
         box.append(self._calendar)
 
+        # Weather sits above the agenda: both answer "what is today like", and
+        # it stays out of the way entirely when no location is configured.
+        self._weather_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                                    spacing=10)
+        self._weather_row.add_css_class("popup-row")
+        self._weather_icon = Gtk.Image.new_from_icon_name("weather-clear-symbolic")
+        self._weather_row.append(self._weather_icon)
+        self._weather_labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+                                       spacing=0)
+        self._weather_labels.set_hexpand(True)
+        self._weather_main = Gtk.Label(label="", xalign=0)
+        self._weather_sub = Gtk.Label(label="", xalign=0)
+        self._weather_sub.add_css_class("popup-subtle")
+        self._weather_labels.append(self._weather_main)
+        self._weather_labels.append(self._weather_sub)
+        self._weather_row.append(self._weather_labels)
+        self._weather_row.set_visible(False)
+        box.append(self._weather_row)
+
         box.append(Gtk.Separator())
 
         self._agenda_title = heading("Today")
@@ -75,6 +95,32 @@ class CalendarPopup(PanelWindow):
         g = self._calendar.get_date()          # GLib.DateTime
         return datetime(g.get_year(), g.get_month(), g.get_day_of_month())
 
+    def _refresh_weather(self) -> None:
+        """Fetch off-thread; a popup must open in milliseconds, not after a
+        network round trip. Cached for half an hour by weather.py."""
+        place = weather.location()
+        if not place:
+            self._weather_row.set_visible(False)
+            return
+
+        def work() -> None:
+            data = weather.fetch(place)
+            GLib.idle_add(self._show_weather, data)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _show_weather(self, data) -> bool:
+        if not data:
+            self._weather_row.set_visible(False)
+            return False
+        self._weather_icon.set_from_icon_name(weather.icon_for(data["condition"]))
+        self._weather_main.set_text(f'{data["temp"]}  {data["condition"]}')
+        self._weather_sub.set_text(
+            f'feels {data["feels"]} · {data["humidity"]} · {data["wind"]}'
+            f' · {data["location"]}')
+        self._weather_row.set_visible(True)
+        return False
+
     def refresh(self) -> None:
         """Redraw the labels immediately; fetch the appointments off-thread.
 
@@ -84,6 +130,8 @@ class CalendarPopup(PanelWindow):
         unreachable account. The grid and the heading are cheap and appear at
         once; the day's events arrive when they arrive.
         """
+        self._refresh_weather()
+
         day = self._selected_date()
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 

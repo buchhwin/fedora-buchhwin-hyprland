@@ -70,6 +70,18 @@ def build(win):
     win._vpn_group.add(row)
     win._vpn_rows.append(row)
 
+    g = group(p, _("Weather"),
+              _("Shown in the calendar popup. Empty means off — a weather "
+                "service with no location looks up whoever asked, so leaving "
+                "this blank keeps this machine's address to itself."))
+    row = Adw.EntryRow(title=_("Location"),
+                       text=win.s.get("weather.location", "") or "")
+    row.connect("changed",
+                lambda r: win.s.set("weather.location", r.get_text().strip()))
+    g.add(row)
+    g.add(Adw.ActionRow(
+        title=_("Example"), subtitle=_("Bremen · Bremen,DE · 28195")))
+
     g = group(p, _("More"))
     win._launch_row(g, _("Wi-Fi and connection editor"),
                      _("Add networks, VPNs and static addresses"),
