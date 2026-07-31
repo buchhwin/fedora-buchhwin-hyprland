@@ -230,3 +230,40 @@
     color: @subtext1;
     min-width: 46px;
 }
+
+/* --- workspace overview ----------------------------------------------------
+ * Full screen, so it needs its own backdrop rather than the popup's panel look.
+ */
+.overview .popup-body {
+    background-color: alpha(@base, 0.86);
+    padding: 40px;
+}
+
+.overview-card {
+    background-color: @surface0;
+    border-radius: 14px;
+    padding: 12px;
+    transition: background-color 140ms ease;
+}
+
+.overview-card:hover { background-color: @surface1; }
+
+/* The one you are on, so the overview answers "where am I" as well as
+ * "where is everything else". */
+.overview-card-active {
+    background-color: @surface1;
+    border: 2px solid @accent;
+}
+
+.overview-title {
+    color: @accent;
+    font-weight: bold;
+}
+
+.overview-window {
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: background-color 120ms ease;
+}
+
+.overview-window:hover { background-color: @surface2; }

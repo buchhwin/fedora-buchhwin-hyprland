@@ -9,6 +9,7 @@
 local S = require("settings")
 local P = S.programs or {}
 local SCRIPTS = os.getenv("HOME") .. "/.local/share/fedora-buchhwin-hyprland/scripts"
+local PANEL_BIN = os.getenv("HOME") .. "/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel"
 
 ------------------------------------------------------------------------------
 -- @-tokens
@@ -133,6 +134,10 @@ hl.bind("SUPER + SHIFT + Up",    hl.dsp.exec_cmd(tokens.snap .. " maximize"))
 -- Turn the current workspace into a floating one and back.
 hl.bind("SUPER + SHIFT + Space", hl.dsp.exec_cmd(tokens.floatws))
 
+-- Everything that is open, on one screen. SUPER+Tab because that is the key
+-- every desktop puts it on, and the muscle memory is worth more than novelty.
+hl.bind("SUPER + Tab", hl.dsp.exec_cmd(PANEL_BIN .. " overview"))
+
 -- Minimized windows live on their own special workspace (scripts/minimize.py
 -- puts them there when a titlebar button or the dock asks). This shows it, so
 -- they are reachable without the dock — and so nothing can be lost.
@@ -177,9 +182,8 @@ local mk = { locked = true, repeating = true }
 --
 -- One shell line rather than two binds: the display has to come after the
 -- change, or it reads the old value and shows the wrong number.
-local PANEL = SCRIPTS:gsub("/scripts$", "/panel") .. "/buchhwin-panel"
 local function with_osd(command, kind)
-    return hl.dsp.exec_cmd(command .. " && " .. PANEL .. " osd-" .. kind)
+    return hl.dsp.exec_cmd(command .. " && " .. PANEL_BIN .. " osd-" .. kind)
 end
 
 hl.bind("XF86AudioRaiseVolume",  with_osd("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+", "volume"), mk)
