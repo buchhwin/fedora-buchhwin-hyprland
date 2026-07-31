@@ -144,9 +144,14 @@ hl.config({
         force_default_wallpaper   = 0,
         disable_hyprland_logo     = true,
         disable_splash_rendering  = true,
-        vfr                       = true,   -- do not redraw a still screen
         focus_on_activate         = true,
-        new_window_takes_over_fullscreen = 2,
+        -- Renamed in 0.55; same 0/1/2 meaning as the old
+        -- new_window_takes_over_fullscreen. 2 is already the default, kept
+        -- explicit so the intent is readable.
+        on_focus_under_fullscreen = 2,
+        -- VFR is not a misc key any more. It lives at debug:vfr, defaults to
+        -- true and is documented as "do not turn off unless debugging", so
+        -- there is nothing for us to set.
     },
 
     input = {

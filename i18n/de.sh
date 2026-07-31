@@ -126,6 +126,7 @@ declare -gA MSG=(
     [step_vm_effects]="Aufwendige Effekte werden abgeschaltet"
     [warn_vm_effects]="Die Effekt-Einstellungen konnten nicht geschrieben werden"
     [ok_vm]="Für die virtuelle Maschine angepasst"
+    [ok_vm_accelerated]="Virtuelle Maschine mit beschleunigter Grafik — volle Optik bleibt an"
 
     [warn_missing_list]="Paketliste nicht gefunden: %s"
     [info_all_present]="Alles bereits installiert"

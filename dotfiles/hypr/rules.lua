@@ -87,15 +87,17 @@ hl.window_rule({
 -- with the wallpaper showing through the text is the classic rice mistake:
 -- looks good in one screenshot, unreadable after ten minutes of work.
 ------------------------------------------------------------------------------
+-- `opacity` is declared as a string in WINDOW_RULE_EFFECT_DESCS, so it takes
+-- the classic "<active> <inactive>" rule string, not a Lua table.
 local term_op = look.terminal_opacity or 0.90
 hl.window_rule({ name = "term-opacity", match = { class = "^(kitty)$" },
-                 opacity = { active = term_op, inactive = term_op - 0.04 } })
+                 opacity = string.format("%.2f %.2f", term_op, term_op - 0.04) })
 hl.window_rule({ name = "files-opacity", match = { class = "^(nemo)$" },
-                 opacity = { active = 0.96, inactive = 0.92 } })
+                 opacity = "0.96 0.92" })
 -- Never make these transparent, whatever the global setting says.
 hl.window_rule({ name = "opaque-media",
                  match = { class = "^(vlc|mpv|obs|Gimp|krita|firefox|brave-origin)$" },
-                 opacity = { active = 1.0, inactive = 1.0 } })
+                 opacity = "1.0 1.0" })
 
 ------------------------------------------------------------------------------
 -- Floating dialogs
@@ -128,7 +130,7 @@ hl.window_rule({
     border_size = 4,
     -- Catppuccin red, deliberately hard-coded: this warning must not change
     -- colour with the flavour.
-    active_border = "rgba(f38ba8ff)",
+    border_color = "rgba(f38ba8ff)",
 })
 
 ------------------------------------------------------------------------------

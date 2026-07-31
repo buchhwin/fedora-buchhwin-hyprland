@@ -1,13 +1,30 @@
 #!/usr/bin/env bash
 # Phase 80 — adjustments for virtual machines.
 #
-# A VM without GPU passthrough renders through llvmpipe on the CPU. Blur and
+# A VM WITHOUT accelerated rendering runs through llvmpipe on the CPU. Blur and
 # animations are then unusably slow and say nothing about real hardware, so
 # they are switched off — but through the SAME settings file the GUI writes,
 # not a second config branch. One version runs everywhere.
+#
+# A VM WITH VirGL is a different machine entirely and must be left alone. This
+# phase used to fire on "is a VM" alone, and that was actively harmful: forcing
+# LIBGL_ALWAYS_SOFTWARE=1 pins Mesa to swrast, whose EGL device carries no DRM
+# node, so Hyprland's renderer fails to initialise and NOTHING draws at all.
+# The workaround for having no GPU was what prevented using the one we had.
 
 phase_vm_tweaks() {
     (( IS_VM )) || return 0
+
+    if gpu_is_accelerated; then
+        section "$(msg sec_vm)"
+        # A machine that gained VirGL after an earlier install still carries the
+        # old file, and it would keep the screen black. Clear it out.
+        if [[ -f "$CONFIG_HOME/uwsm/env-hyprland" ]] && (( ! DRY_RUN )); then
+            rm -f "$CONFIG_HOME/uwsm/env-hyprland"
+        fi
+        ok "$(msg ok_vm_accelerated)"
+        return 0
+    fi
 
     section "$(msg sec_vm)"
     info "$(msg info_vm_explain)"
@@ -20,7 +37,7 @@ phase_vm_tweaks() {
     else
         mkdir -p "$CONFIG_HOME/uwsm"
         cat >"$CONFIG_HOME/uwsm/env-hyprland" <<'EOF'
-# Virtual machine: no GPU, render on the CPU.
+# Virtual machine without VirGL: no GPU, render on the CPU.
 export WLR_RENDERER_ALLOW_SOFTWARE=1
 export LIBGL_ALWAYS_SOFTWARE=1
 export AQ_NO_MODIFIERS=1

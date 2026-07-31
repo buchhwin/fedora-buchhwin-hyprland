@@ -140,6 +140,7 @@ declare -gA MSG=(
     [step_vm_effects]="Switching off the expensive effects"
     [warn_vm_effects]="The effect settings could not be written"
     [ok_vm]="Adjusted for the virtual machine"
+    [ok_vm_accelerated]="Virtual machine with accelerated rendering — keeping the full look"
 
     # --- packages ------------------------------------------------------------
     [warn_missing_list]="Package list not found: %s"

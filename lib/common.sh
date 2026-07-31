@@ -299,6 +299,28 @@ is_vm() {
     [[ "$v" != "none" ]]
 }
 
+# Is there accelerated rendering, or will everything land on the CPU?
+#
+# Measured on the test VM in both states, because the obvious test is wrong:
+# /dev/dri/renderD128 exists even when virtio-gpu runs WITHOUT VirGL, so the
+# presence of a render node proves nothing. What does differ is the negotiated
+# virtio feature bit 0 (VIRTIO_GPU_F_VIRGL) on the device bound to virtio_gpu:
+# 1 with VirGL, 0 without.
+#
+# No virtio GPU at all means real hardware or passthrough — accelerated.
+gpu_is_accelerated() {
+    local dev drv
+    for dev in /sys/bus/virtio/devices/*/; do
+        [[ -e "$dev/driver" ]] || continue
+        drv="$(basename "$(readlink -f "$dev/driver")")"
+        [[ "$drv" == "virtio_gpu" ]] || continue
+        [[ -r "$dev/features" ]] || return 1
+        [[ "$(cut -c1 <"$dev/features")" == "1" ]]
+        return $?
+    done
+    return 0
+}
+
 detect_gpu() {
     if lspci 2>/dev/null | grep -qiE 'vga|3d|display' ; then
         local line; line="$(lspci 2>/dev/null | grep -iE 'vga|3d|display' | head -1)"
