@@ -64,8 +64,50 @@ hl.window_rule({
 })
 
 ------------------------------------------------------------------------------
+-- Games
+--
+-- The goal is that pressing fullscreen in a game does what it does everywhere
+-- else. Most of the work is elsewhere — xwayland.force_zero_scaling in
+-- hyprland.lua is what stops an X11 game from being handed the wrong size —
+-- but a tiling compositor still has to be told to get out of the way.
+--
+-- These rules do NOT force fullscreen. A game that opens windowed should stay
+-- windowed; it is the game's decision, and forcing it breaks launchers and
+-- character-creation screens that legitimately want a small window.
+--
+-- `immediate` allows tearing for this window only (general.allow_tearing is
+-- the master switch). In a game a torn frame beats a late one; nothing else on
+-- the desktop is affected.
+------------------------------------------------------------------------------
+local games = {
+    "^(steam_app_.*)$",           -- anything launched through Steam
+    "^(gamescope)$",
+    "^(Minecraft.*)$",            -- vanilla and most launchers
+    "^(com%.mojang%..*)$",
+    "^(org%.prismlauncher%..*)$",
+    "^(lutris)$",
+    "^(hl2_linux|csgo_linux64|cs2)$",
+}
+for i, cls in ipairs(games) do
+    hl.window_rule({
+        name = "game-" .. i, match = { class = cls },
+        immediate = true,
+        -- A string, not a boolean — WINDOW_RULE_EFFECT_DESCS declares this one
+        -- as CLuaConfigString and Hyprland rejects `true` outright. "fullscreen"
+        -- keeps the screen awake only while the game actually is fullscreen, so
+        -- a launcher left open in a window still lets the machine lock.
+        idle_inhibit = "fullscreen",
+        no_anim = true,
+    })
+end
+
+------------------------------------------------------------------------------
 -- Sanity
 ------------------------------------------------------------------------------
+-- Suppresses the maximize EVENT only — an application announcing itself as
+-- maximized on startup, which in a tiling layout is meaningless noise.
+-- Fullscreen is a different event and is deliberately left alone, otherwise
+-- every game's fullscreen key would stop working.
 hl.window_rule({
     name = "suppress-maximize", match = { class = ".*" },
     suppress_event = "maximize",

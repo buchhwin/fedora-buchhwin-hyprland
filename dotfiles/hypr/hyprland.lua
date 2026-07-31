@@ -91,7 +91,10 @@ hl.config({
         -- sounds. Resizing with the mouse still works on SUPER + right-drag
         -- (see binds.lua), and the keyboard snaps are untouched.
         resize_on_border = layout.resize_on_border == true,
-        allow_tearing    = false,
+        -- Master switch only. Nothing tears until a window rule asks for it,
+        -- and the only rules that do are the games in rules.lua — where a torn
+        -- frame beats a late one. Every other window is unaffected.
+        allow_tearing    = layout.allow_tearing ~= false,
         layout           = layout.default or "dwindle",
 
         -- Magnetic snapping for FLOATING windows: drag one near an edge or
@@ -146,6 +149,18 @@ hl.config({
     },
 
     master = { new_status = "master" },
+
+    -- Games are the reason this block exists. Most of them are X11 — Minecraft
+    -- included — and on a scaled display XWayland hands them the wrong size,
+    -- so "fullscreen" ends up as a blurry window that does not cover the
+    -- screen. force_zero_scaling gives them the real pixel grid instead.
+    --
+    -- use_nearest_neighbor is Hyprland's default and stays: scaled X11 windows
+    -- look crisp rather than smeared. Turn it off only if some app looks
+    -- jagged, not because a wiki page said so.
+    xwayland = {
+        force_zero_scaling = true,
+    },
 
     -- Hyprland's own popups. The update notice appears in the middle of the
     -- screen after every version bump, and the donation nag twice a year.

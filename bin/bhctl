@@ -32,7 +32,8 @@ bhctl — manage the Buchhwin Hyprland desktop
   bhctl keys                   Searchable list of keyboard shortcuts.
   bhctl doctor                 Check the installation and report problems.
   bhctl lang en|de             Interface language.
-  bhctl backup | restore       Save or restore your own settings.
+  bhctl backup [file]          Export your settings to a tar.gz.
+  bhctl restore <file>         Import them — on this or any fresh install.
   bhctl version                Versions of the whole stack.
 EOF
 }
@@ -155,19 +156,77 @@ cmd_doctor() {
     fi
 }
 
+# Everything that is YOURS — the answers you gave, not the files generated from
+# them. Take this to a freshly installed machine, restore it, and the desktop
+# comes back: keybinds, layout, look, drives, accounts, wallpaper choice,
+# language, shell extras.
+#
+# Generated files are deliberately absent. theme.lua, colors.css, the systemd
+# units and the whole of ~/.config/waybar are rendered from settings.lua and
+# theme.json by the installer; carrying copies would only let a backup from an
+# older version overwrite newer generated output with stale contents.
+_backup_items() {
+    printf '%s\n' \
+        "$CONFIG_HOME/hypr/settings.lua" \
+        "$STATE_DIR/theme.json" \
+        "$STATE_DIR/lang" \
+        "$STATE_DIR/wallpaper" \
+        "$HOME/.zshrc.local"
+}
+
 cmd_backup() {
-    local dest="${1:-$HOME/buchhwin-backup-$(date +%Y%m%d-%H%M%S).tar.gz}"
-    tar czf "$dest" \
-        -C "$CONFIG_HOME" hypr/settings.lua \
-        -C "$HOME" .zshrc.local 2>/dev/null || true
-    ok "backup: $dest"
+    local dest="${1:-$HOME/buchhwin-settings-$(date +%Y%m%d-%H%M%S).tar.gz}"
+    local list=() item
+    while read -r item; do
+        [[ -e "$item" ]] && list+=("${item#"$HOME/"}")
+    done < <(_backup_items)
+
+    if (( ${#list[@]} == 0 )); then
+        fail "nothing to back up — is this a buchhwin install?"
+        return 1
+    fi
+
+    # Paths are stored relative to $HOME so the archive restores onto a machine
+    # with a different username without any path rewriting.
+    tar czf "$dest" -C "$HOME" "${list[@]}" || { fail "could not write $dest"; return 1; }
+
+    section "Backup"
+    printf '  %s\n' "$dest"
+    local f
+    for f in "${list[@]}"; do printf '    %s\n' "$f"; done
+    ok "$(printf '%s file(s)' "${#list[@]}")"
 }
 
 cmd_restore() {
     local src="${1:?usage: bhctl restore <file.tar.gz>}"
-    tar xzf "$src" -C "$CONFIG_HOME" hypr/settings.lua
+    [[ -f "$src" ]] || { fail "no such file: $src"; return 1; }
+
+    # Look before leaping: a corrupt or unrelated archive should fail here,
+    # not half way through overwriting a working configuration.
+    tar tzf "$src" >/dev/null 2>&1 || { fail "not a readable tar.gz: $src"; return 1; }
+
+    section "Restore"
+    if [[ -f "$CONFIG_HOME/hypr/settings.lua" ]]; then
+        local aside="$CONFIG_HOME/hypr/settings.lua.before-restore"
+        cp -f "$CONFIG_HOME/hypr/settings.lua" "$aside"
+        printf '  current settings kept at %s\n' "$aside"
+    fi
+
+    tar xzf "$src" -C "$HOME" || { fail "could not unpack $src"; return 1; }
+
+    # settings.lua alone changes nothing visible: the colours, the bar CSS, the
+    # wallpaper timer and the drive units are all generated from it. Re-render
+    # them, or the restore appears to have done nothing.
+    step "regenerating"
+    python3 "$REPO_DIR/theme/apply-theme.py" >/dev/null 2>&1 \
+        || warn "theme could not be re-rendered"
+    "$REPO_DIR/scripts/wallpaper.sh" sync-timer >/dev/null 2>&1 || true
+    python3 "$REPO_DIR/scripts/drives.py" sync >/dev/null 2>&1 || true
+
     hyprctl reload >/dev/null 2>&1 || true
-    ok "restored"
+    systemctl --user restart buchhwin-bar.service >/dev/null 2>&1 || true
+
+    ok "restored — log out and back in if something looks half-applied"
 }
 
 cmd_version() {
