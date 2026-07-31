@@ -238,20 +238,39 @@ hl.curve("almostLinear",   { type = "bezier", points = { {0.5, 0.5},   {0.75, 1}
 hl.curve("quick",          { type = "bezier", points = { {0.15, 0},    {0.1, 1} } })
 hl.curve("snappy",         { type = "spring", mass = 1, stiffness = 330, dampening = 26 })
 hl.curve("gentle",         { type = "spring", mass = 1, stiffness = 210, dampening = 24 })
+-- A window arriving with the faintest overshoot, and menus that settle rather
+-- than stop. Both are springs, because a bezier of the same duration reads as
+-- mechanical: it decelerates to exactly zero and holds, and the eye notices.
+-- Overshoot is kept small on purpose — a window that visibly bounces is a
+-- demo, not something to work in front of all day.
+hl.curve("arrive",         { type = "spring", mass = 1, stiffness = 380, dampening = 24 })
+hl.curve("settle",         { type = "spring", mass = 0.9, stiffness = 250, dampening = 22 })
+-- Leaving is faster than arriving. A window you have closed is already gone as
+-- far as you are concerned, and waiting for it feels like lag; a window
+-- appearing is worth 150 ms because it tells you where it came from.
+hl.curve("leave",          { type = "bezier", points = { {0.4, 0},     {1, 1} } })
 
 local sp = showcase and 0.6 or 1.0     -- showcase: slower, for recordings
 
 hl.animation({ leaf = "global",        enabled = look.animations ~= false, speed = 7 * sp, bezier = "quick" })
-hl.animation({ leaf = "windows",       enabled = true, speed = 6.0 * sp, spring = "snappy" })
-hl.animation({ leaf = "windowsIn",     enabled = true, speed = 6.0 * sp, spring = "snappy", style = "popin 92%" })
-hl.animation({ leaf = "windowsOut",    enabled = true, speed = 6.5 * sp, bezier = "quick",  style = "popin 92%" })
+hl.animation({ leaf = "windows",       enabled = true, speed = 6.0 * sp, spring = "arrive" })
+-- popin 90%: the window grows the last tenth of the way in, which reads as
+-- "this opened here" rather than "this was always here and faded up".
+hl.animation({ leaf = "windowsIn",     enabled = true, speed = 5.6 * sp, spring = "arrive", style = "popin 90%" })
+hl.animation({ leaf = "windowsOut",    enabled = true, speed = 7.5 * sp, bezier = "leave",  style = "popin 92%" })
+hl.animation({ leaf = "windowsMove",   enabled = true, speed = 6.0 * sp, spring = "settle" })
 hl.animation({ leaf = "border",        enabled = true, speed = 5.0 * sp, bezier = "easeOutQuint" })
-hl.animation({ leaf = "fade",          enabled = true, speed = 6.0 * sp, bezier = "quick" })
-hl.animation({ leaf = "layers",        enabled = true, speed = 5.5 * sp, spring = "gentle" })
-hl.animation({ leaf = "layersIn",      enabled = true, speed = 5.5 * sp, spring = "gentle", style = "fade" })
-hl.animation({ leaf = "layersOut",     enabled = true, speed = 6.5 * sp, bezier = "quick",  style = "fade" })
-hl.animation({ leaf = "workspaces",    enabled = true, speed = 5.5 * sp, spring = "gentle", style = "slidefade 15%" })
-hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 6.0 * sp, spring = "snappy", style = "slidevert" })
+-- The border glow follows the focus rather than snapping with it: it is the
+-- one animation whose whole job is to draw the eye to where focus went.
+hl.animation({ leaf = "borderangle",   enabled = true, speed = 4.0 * sp, bezier = "easeInOutCubic" })
+hl.animation({ leaf = "fade",          enabled = true, speed = 6.5 * sp, bezier = "quick" })
+hl.animation({ leaf = "layers",        enabled = true, speed = 5.5 * sp, spring = "settle" })
+-- Menus and popups slide a hair out of the edge they belong to. 8% is small
+-- enough to read as "it came from the bar" without any travel to sit through.
+hl.animation({ leaf = "layersIn",      enabled = true, speed = 5.2 * sp, spring = "settle", style = "slidefade top 8%" })
+hl.animation({ leaf = "layersOut",     enabled = true, speed = 7.5 * sp, bezier = "leave",  style = "fade" })
+hl.animation({ leaf = "workspaces",    enabled = true, speed = 5.2 * sp, spring = "settle", style = "slidefade 12%" })
+hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 6.5 * sp, spring = "arrive", style = "slidevert" })
 
 ------------------------------------------------------------------------------
 -- Gestures

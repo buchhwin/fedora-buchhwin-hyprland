@@ -26,6 +26,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import unicodedata
 import math
 from pathlib import Path
 
@@ -129,6 +131,12 @@ def waves(colors: dict, accent: str, w: int, h: int) -> Image.Image:
 STYLES = {"gradient": gradient, "mesh": mesh, "waves": waves}
 
 
+def _slug(text: str) -> str:
+    """Lower-case ASCII with hyphens, for a filename."""
+    stripped = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", stripped.lower()).strip("-")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -151,14 +159,29 @@ def main() -> int:
             continue
         palette = json.loads(path.read_text())
         colors = palette["colors"]
-        # Latte is the light one; its accent needs to sit on a light wash, so
-        # the same code produces a light wallpaper without a special case —
-        # crust and base are simply the light end of that palette.
-        accent = "mauve" if flavour != "latte" else "blue"
+        # The accent comes from the palette. It used to be "mauve unless latte",
+        # which is a Catppuccin fact: Gruvbox has no mauve at all, so every
+        # non-Catppuccin family would have raised a KeyError here.
+        #
+        # A light palette needs no special case either — its crust and base ARE
+        # the light end, so the same code produces a light wallpaper.
+        accents = palette.get("accents") or sorted(colors)
+        preferred = "blue" if not palette.get("dark", True) else "mauve"
+        accent = preferred if preferred in accents else accents[0]
+
+        # <family>-<flavour>-<style>.png, or just <flavour>-<style>.png when
+        # the family has a single variant and repeating the word would give
+        # "dracula-dracula-waves". The flavour is always in there, because
+        # bin/bhctl finds a matching wallpaper by globbing for it.
+        #
+        # ASCII only: "Rosé Pine" would otherwise put an é in a filename, which
+        # is a needless problem for shell globs, tab completion and archives.
+        family = _slug(str(palette.get("family", "catppuccin")))
+        prefix = "" if family == flavour else f"{family}-"
 
         for style in styles:
             img = STYLES[style](colors, accent, w, h)
-            out = OUT / f"catppuccin-{flavour}-{style}.png"
+            out = OUT / f"{prefix}{flavour}-{style}.png"
             # PNG rather than JPEG: these are flat colours and gradients, so
             # PNG is both smaller and free of the banding JPEG adds to smooth
             # washes — which is exactly what would show on a desktop.

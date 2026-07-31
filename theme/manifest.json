@@ -51,7 +51,7 @@
     },
     {
       "template": "btop.theme.tmpl",
-      "target": "$CONFIG/btop/themes/catppuccin.theme",
+      "target": "$CONFIG/btop/themes/buchhwin.theme",
       "group": "btop"
     },
     {
@@ -91,7 +91,7 @@
     },
     {
       "template": "qt-colors.conf.tmpl",
-      "target": "$CONFIG/qt6ct/colors/catppuccin.conf",
+      "target": "$CONFIG/qt6ct/colors/buchhwin.conf",
       "group": "qt"
     },
     {
