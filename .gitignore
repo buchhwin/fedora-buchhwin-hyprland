@@ -12,6 +12,13 @@ colors.rasi
 theme.lua
 theme.conf
 
+# Personal wallpapers must never land in a public repository.
+# Only the generated catppuccin-*.png are tracked; anything else you drop into
+# wallpapers/ is ignored — bought or licensed images stay yours.
+wallpapers/*
+!wallpapers/catppuccin-*.png
+!wallpapers/README.md
+
 # Personal settings
 settings.lua
 settings.local.lua

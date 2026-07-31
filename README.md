@@ -20,12 +20,27 @@ to be worth posting.
 curl -fsSL https://buchhwin.github.io/fedora-buchhwin-hyprland/install | bash
 ```
 
-Prefer to read it first — and you should:
+### Or read it first — and you should
 
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/buchhwin/fedora-buchhwin-hyprland/main/bootstrap.sh
-less bootstrap.sh && bash bootstrap.sh
+less bootstrap.sh      # read it
+bash bootstrap.sh      # then run it, if you are happy
 ```
+
+Three separate commands on purpose. `less file && bash file` looks like a
+confirmation step and is not one: `less` exits 0 even when you quit with `q`,
+so the script would run regardless of what you thought of it.
+
+Both routes install exactly the same thing. The difference is whether you ever
+see what you are running. Piping straight to a shell has a concrete failure
+mode beyond trust: **bash executes while the download is still arriving**, so a
+connection that drops halfway leaves a truncated script running — and a
+truncated line can mean something very different from the whole one.
+
+`bootstrap.sh` is deliberately 30 lines so that reading it is a minute, not an
+afternoon. It checks you are on Fedora and not root, installs git if missing,
+clones the repository, and hands over to `install.sh` with your arguments.
 
 Start from a plain **Fedora Server** install (or any Fedora with no desktop).
 The script adds everything else.
