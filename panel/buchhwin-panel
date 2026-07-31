@@ -23,8 +23,8 @@
 set -euo pipefail
 
 case "${1:-}" in
-    calendar|audio|network|quick|osd-volume|osd-brightness|osd-mic|--daemon) ;;
-    *) echo "usage: buchhwin-panel calendar|audio|network|quick|osd-volume|osd-brightness|osd-mic|--daemon" >&2; exit 2 ;;
+    calendar|audio|network|bluetooth|quick|osd-volume|osd-brightness|osd-mic|--daemon) ;;
+    *) echo "usage: buchhwin-panel calendar|audio|network|bluetooth|quick|osd-volume|osd-brightness|osd-mic|--daemon" >&2; exit 2 ;;
 esac
 
 HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"

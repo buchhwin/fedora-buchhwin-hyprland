@@ -21,7 +21,7 @@
     // shows them properly (SUPER+Escape). Bluetooth moved into the tray, which
     // is also where Windows keeps it.
     "modules-right":  ["tray", "custom/recording", "custom/drives",
-                       "pulseaudio", "network", "battery", "clock",
+                       "pulseaudio", "bluetooth", "network", "battery", "clock",
                        "custom/notifications", "custom/settings", "custom/power"],
 
     // One bar per screen, and each shows only its own workspaces. Without
@@ -111,7 +111,8 @@
         "format-disabled": "󰂲",
         "format-connected": "󰂱 {num_connections}",
         "tooltip-format-connected": "{device_enumerate}",
-        "on-click": "systemd-run --user --scope -q sh -c 'blueman-manager'"
+        "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel bluetooth",
+        "on-click-right": "systemd-run --user --scope -q sh -c 'blueman-manager'"
     },
 
     // Ethernet shows the icon and nothing else. The interface name ("ens18",

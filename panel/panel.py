@@ -35,7 +35,7 @@ from gi.repository import Adw, Gio, GLib  # noqa: E402
 
 from popup import FIFO, load_css  # noqa: E402
 
-NAMES = ("calendar", "audio", "network", "quick",
+NAMES = ("calendar", "audio", "network", "bluetooth", "quick",
          "osd-volume", "osd-brightness", "osd-mic")
 USAGE = ("usage: panel.py --daemon | calendar|audio|network|quick"
          "|osd-volume|osd-brightness|osd-mic")
@@ -49,6 +49,10 @@ def _window_class(name: str):
         from quick_popup import QuickPopup
 
         return QuickPopup
+    if name == "bluetooth":
+        from bluetooth_popup import BluetoothPopup
+
+        return BluetoothPopup
     if name.startswith("osd"):
         from osd_popup import OsdPopup
 
