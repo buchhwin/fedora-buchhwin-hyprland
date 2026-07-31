@@ -62,7 +62,11 @@ After=graphical-session.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/swww-daemon
-ExecStartPost=/bin/sh -c "sleep 1; %h/.local/bin/bhctl wallpaper restore || true"
+# Call the script, not bhctl: `bhctl wallpaper <arg>` treats its argument as a
+# FILE, so "restore" was passed to `wallpaper.sh set` and died with a usage
+# error that `|| true` swallowed — leaving a black desktop until the slideshow
+# timer fired up to half an hour later.
+ExecStartPost=/bin/sh -c "sleep 1; %h/.local/share/fedora-buchhwin-hyprland/scripts/wallpaper.sh restore || true"
 Restart=on-failure
 RestartSec=2
 

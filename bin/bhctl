@@ -203,8 +203,15 @@ case "${1:-help}" in
               else exec buchhwin-control-center; fi ;;
     set)      shift; python3 "$SETTINGS" set "$@"; "$REPO_DIR/scripts/reload.sh" ;;
     wallpaper) shift
-              if (( $# )); then "$REPO_DIR/scripts/wallpaper.sh" set "$1"
-              else "$REPO_DIR/scripts/wallpaper-menu.sh"; fi ;;
+              # A bare word that is not a file used to be handed to `set` as if
+              # it were one, which failed with a usage error instead of doing
+              # the obvious thing. Pass the script's own verbs through.
+              case "${1:-}" in
+                  "")               "$REPO_DIR/scripts/wallpaper-menu.sh" ;;
+                  restore|next|folder|sync-timer)
+                                    "$REPO_DIR/scripts/wallpaper.sh" "$@" ;;
+                  *)                "$REPO_DIR/scripts/wallpaper.sh" set "$1" ;;
+              esac ;;
     keys)     exec "$REPO_DIR/scripts/keybinds-menu.sh" ;;
     doctor)   cmd_doctor ;;
     lang)     shift
