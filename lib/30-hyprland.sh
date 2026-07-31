@@ -21,6 +21,18 @@ phase_hyprland() {
                 fail "$(msg fail_hyprland_old "$hv")"
             else
                 ok "$(msg ok_hyprland "$hv")"
+                # 0.56 exists in the COPR but cannot be installed alongside a
+                # working desktop: it needs aquamarine 0.14, while hyprlock and
+                # hyprpicker in the same repository are still built against
+                # 0.12. Taking 0.56 therefore REMOVES the lock screen and the
+                # colour picker — measured, not assumed.
+                #
+                # 0.55 is what matters: it is the release that made the config
+                # Lua, which is what everything here is written for. When the
+                # repository rebuilds hyprlock against the newer aquamarine,
+                # a plain `bhctl update` will move up on its own. Nothing is
+                # pinned; it simply is not forced.
+                (( maj == 0 && min == 55 )) && info "$(msg info_hyprland_055)"
             fi
         fi
     fi

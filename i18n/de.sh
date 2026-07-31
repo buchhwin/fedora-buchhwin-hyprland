@@ -67,6 +67,7 @@ declare -gA MSG=(
     [sec_desktop]="Arbeitsumgebung"
     [ok_hyprland]="Hyprland %s"
     [fail_hyprland_old]="Hyprland %s ist zu alt. Die Konfiguration in diesem Repo ist Lua und braucht 0.55 oder neuer."
+    [info_hyprland_055]="0.56 bleibt aus: es würde hyprlock und hyprpicker entfernen, die im selben Repo gegen ein älteres aquamarine gebaut sind"
     [step_sddm]="Anmeldeverwaltung wird aktiviert"
     [ok_session]="Sitzungseintrag angelegt"
 

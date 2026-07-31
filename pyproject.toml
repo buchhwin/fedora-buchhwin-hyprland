@@ -1,0 +1,44 @@
+# Ruff configuration.
+#
+# Without a config, ruff enforces its entire opinionated default set, and a
+# fair part of it does not apply to a desktop configuration project. Rather
+# than sprinkling `noqa` over working code, the rules that genuinely do not
+# fit are turned off HERE, each with the reason — so the next person can see
+# what was decided rather than guessing why a line has a suppression on it.
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF", "PL"]
+
+ignore = [
+    # Times shown to a human must be in THAT human's timezone. Every
+    # datetime.fromtimestamp() here feeds a calendar tooltip or a wallpaper
+    # timestamp; making them timezone-aware would display UTC to somebody
+    # sitting in Berlin, which is the bug, not the fix.
+    "DTZ005", "DTZ006",
+
+    # A waybar module and a wallpaper picker must not take the bar down with
+    # them when one calendar or one image is broken. Catching broadly and
+    # carrying on is the correct behaviour here, not laziness.
+    "BLE001", "S110", "S112",
+
+    # subprocess calls are deliberate and their arguments are ours, not user
+    # input. `check=False` is added explicitly where it matters.
+    "S603", "S607",
+
+    # Long explanatory comments are the point of this codebase.
+    "E501",
+
+    # Complexity limits fight the page-building functions in the settings GUI,
+    # which are long because they are lists of widgets, not because they are
+    # complicated.
+    "PLR0912", "PLR0913", "PLR0915",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The GUI needs its gi.require_version() calls before the imports they guard.
+"settings-gui/*" = ["E402"]
+"scripts/*.py" = ["E402"]

@@ -76,6 +76,7 @@ declare -gA MSG=(
     [sec_desktop]="Desktop"
     [ok_hyprland]="Hyprland %s"
     [fail_hyprland_old]="Hyprland %s is too old. The configuration in this repository is Lua, which needs 0.55 or newer."
+    [info_hyprland_055]="0.56 is held back: it would remove hyprlock and hyprpicker, which are built against an older aquamarine in the same repository"
     [step_sddm]="Enabling the login manager"
     [ok_session]="Session entry installed"
 

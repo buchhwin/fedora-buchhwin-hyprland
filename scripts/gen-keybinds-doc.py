@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import settings as S  # noqa: E402
+import settings as S
 
 REPO = Path(__file__).resolve().parent.parent
 EXAMPLE = REPO / "dotfiles" / "hypr" / "settings.example.lua"

@@ -52,9 +52,19 @@ phase_apps() {
     dnf_install "${apps[@]}"
 
     # --- Flatpaks ------------------------------------------------------------
+    # Flathub is added HERE and not in the repository phase, because `flatpak`
+    # itself is installed in the base phase, which runs after it. The first
+    # test run added the remote before the tool existed: the remote-add failed
+    # silently and all five Flatpaks then failed too — five red lines from one
+    # ordering mistake.
     if (( NO_FLATPAK )); then
         info "$(msg info_flatpak_disabled)"
     else
+        step "$(msg step_flathub)"
+        run sudo flatpak remote-add --if-not-exists \
+            flathub https://dl.flathub.org/repo/flathub.flatpakrepo \
+            || fail "$(msg fail_flathub)"
+
         local id
         while read -r id; do
             [[ -z "$id" ]] && continue

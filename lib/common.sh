@@ -5,6 +5,10 @@
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
+# shellcheck disable=SC2034
+# The paths below are consumed by the lib/NN-*.sh phases, by bin/bhctl and by
+# the helper scripts — all of which source this file. shellcheck analyses one
+# file at a time and cannot see that, so it reports them as unused.
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/buchhwin"
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -153,6 +157,7 @@ run_quiet() {
 # hanging on a prompt nobody will see.
 # ---------------------------------------------------------------------------
 SUDO_KEEPALIVE_PID=""
+# shellcheck disable=SC2034  # read by the phases, which source this file
 SUDO_PASSWORDLESS=0
 
 sudo_init() {
@@ -250,7 +255,8 @@ link_config() {
     fi
     run mkdir -p "$(dirname "$dst")"
     if [[ -e "$dst" || -L "$dst" ]]; then
-        local backup="$dst.bak-$(date +%Y%m%d-%H%M%S)"
+        local backup
+        backup="$dst.bak-$(date +%Y%m%d-%H%M%S)"
         step "$(msg step_backup "$dst" "$backup")"
         run mv "$dst" "$backup"
     fi

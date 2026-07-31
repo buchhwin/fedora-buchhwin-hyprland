@@ -28,8 +28,8 @@ phase_repos() {
 
     # --- COPRs ---------------------------------------------------------------
     # Hyprland is orphaned in Fedora (last build 0.45.2 on F42, absent from
-    # F43/F44), so solopasha/hyprland is not a convenience — it is the only
-    # maintained source for the current release.
+    # F43/F44), so a COPR is not a convenience here — it is the only source.
+    # Which one, and why, is written down in packages/copr.txt.
     local entry
     while read -r entry; do
         [[ -z "$entry" ]] && continue
@@ -88,19 +88,6 @@ gpgcheck=1
 gpgkey=https://packages.microsoft.com/keys/microsoft.asc
 EOF
         fi
-    fi
-
-    # --- Flathub -------------------------------------------------------------
-    # System-wide, matching the system-wide installs in phase 40. Mixing the
-    # user and system levels is what made the old script prompt for a password
-    # halfway through.
-    if (( NO_FLATPAK )); then
-        info "$(msg info_flatpak_disabled)"
-    else
-        step "$(msg step_flathub)"
-        run sudo flatpak remote-add --if-not-exists \
-            flathub https://dl.flathub.org/repo/flathub.flatpakrepo \
-            || fail "$(msg fail_flathub)"
     fi
 
     # --- codecs --------------------------------------------------------------

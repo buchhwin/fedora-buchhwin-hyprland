@@ -51,6 +51,7 @@ phase_preflight() {
     fi
 
     # --- virtual machine -----------------------------------------------------
+    # shellcheck disable=SC2034  # read by lib/80-vm-tweaks.sh
     if is_vm; then
         IS_VM=1
         info "$(msg info_vm_detected "$(systemd-detect-virt)")"

@@ -45,8 +45,7 @@ _swww_ready() {
     swww query >/dev/null 2>&1 && return 0
     # The daemon is a user service; at login this script can win the race
     # against it, so wait briefly rather than failing outright.
-    local i
-    for i in $(seq 1 10); do
+    for _ in $(seq 1 10); do
         sleep 0.5
         swww query >/dev/null 2>&1 && return 0
     done

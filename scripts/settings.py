@@ -81,7 +81,7 @@ def read(path: Path = SETTINGS) -> dict:
         raise SystemExit("the 'lua' interpreter is required to read settings.lua")
     env = {**os.environ, "BH_SETTINGS_PATH": str(path)}
     proc = subprocess.run([lua, "-e", LUA_TO_JSON],
-                          capture_output=True, text=True, env=env)
+                          capture_output=True, text=True, env=env, check=False)
     if proc.returncode != 0:
         raise SystemExit(f"settings.lua is not valid Lua:\n{proc.stderr.strip()}")
     return json.loads(proc.stdout)
@@ -142,7 +142,7 @@ def write(data: dict, path: Path = SETTINGS) -> None:
     if lua:
         check = subprocess.run(
             [lua, "-e", 'dofile(os.getenv("BH_SETTINGS_PATH"))'],
-            capture_output=True, text=True,
+            capture_output=True, text=True, check=False,
             env={**os.environ, "BH_SETTINGS_PATH": str(tmp)})
         if check.returncode != 0:
             tmp.unlink(missing_ok=True)

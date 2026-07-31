@@ -41,7 +41,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
-import settings as S  # noqa: E402
+import settings as S
 
 HOME = Path.home()
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config"))
@@ -190,13 +190,13 @@ def store_password(d: dict, password: str) -> bool:
     attributes, so mounting never prompts again."""
     if shutil.which("secret-tool") is None:
         return False
-    proc = subprocess.run(
+    proc = subprocess.run(  # noqa: S603
         ["secret-tool", "store", "--label", f"Drive: {d['name']}",
          "xdg:schema", "org.gnome.keyring.NetworkPassword",
          "protocol", NETWORK_SCHEMES.get(d.get("type", "smb"), "smb"),
          "server", d["host"], "object", d.get("share", ""),
          "user", d.get("user", "")],
-        input=password, text=True, capture_output=True)
+        input=password, text=True, capture_output=True, check=False)
     return proc.returncode == 0
 
 
@@ -244,7 +244,8 @@ def cmd_add_cloud(args) -> int:
     print(f"  {label}: rclone will open your browser. Sign in there, then come back.")
     # config_is_local=false would print a URL instead of opening a browser; on a
     # desktop the browser is what you want.
-    proc = subprocess.run(["rclone", "config", "create", name, backend], text=True)
+    proc = subprocess.run(["rclone", "config", "create", name, backend],
+                          text=True, check=False)
     if proc.returncode != 0:
         print("rclone could not set the remote up", file=sys.stderr)
         return 1

@@ -36,8 +36,8 @@ def load_gi():
         import gi
         gi.require_version("EDataServer", "1.2")
         gi.require_version("ECal", "2.0")
-        from gi.repository import ECal, EDataServer, GLib, ICalGLib  # noqa: F401
-        return ECal, EDataServer, GLib, ICalGLib
+        from gi.repository import ECal, EDataServer, GLib
+        return ECal, EDataServer, GLib
     except (ImportError, ValueError) as exc:
         return ("error", str(exc))
 
@@ -47,7 +47,7 @@ def fetch_events(days: int = WINDOW_DAYS) -> tuple[list[dict], str | None]:
     loaded = load_gi()
     if isinstance(loaded, tuple) and loaded and loaded[0] == "error":
         return [], f"evolution-data-server is not available ({loaded[1]})"
-    ECal, EDataServer, GLib, ICalGLib = loaded
+    ECal, EDataServer, GLib = loaded
 
     try:
         registry = EDataServer.SourceRegistry.new_sync(None)

@@ -91,18 +91,41 @@ jobs:
       - name: enable the COPRs
         run: |
           dnf install -y dnf-plugins-core 'dnf-command(copr)'
-          while read -r c; do [ -n "$c" ] && dnf copr enable -y "$c" || true; done \
-            < <(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' packages/copr.txt)
+          # copr.txt entries are "owner/project[:priority]" — the priority is
+          # for dnf config-manager, not for copr enable, and passing it through
+          # makes the whole job fail with an unresolvable repository.
+          while read -r c; do
+            [ -n "$c" ] || continue
+            dnf copr enable -y "${c%%:*}" || true
+          done < <(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' packages/copr.txt)
+      - name: add the third-party repositories
+        # brave-origin and code live in vendor repositories, not in Fedora.
+        # Without these the check reports them as missing, which is a false
+        # alarm that trains you to ignore the job.
+        run: |
+          rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+          dnf config-manager addrepo \
+            --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo || true
+          rpm --import https://packages.microsoft.com/keys/microsoft.asc
+          printf '%s\n' '[code]' 'name=VS Code' \
+            'baseurl=https://packages.microsoft.com/yumrepos/vscode' \
+            'enabled=1' 'gpgcheck=1' \
+            'gpgkey=https://packages.microsoft.com/keys/microsoft.asc' \
+            > /etc/yum.repos.d/vscode.repo
+
       - name: resolve every package
-        # This is the step that would have caught a wrong package name before it
-        # reached a machine. Guessing names is how the previous setup shipped a
-        # dnf line that never worked.
+        # The step that would have caught a wrong package name before it reached
+        # a machine. Guessing names is how the previous setup shipped a dnf line
+        # that never worked — and how this one nearly shipped solopasha/hyprland,
+        # whose newest F44 build is two releases behind and does not install.
         run: |
           missing=""
-          for list in packages/dnf-*.txt packages/copr-*.txt; do
+          for list in packages/dnf-*.txt packages/copr-*.txt packages/optional-*.txt; do
+            [ -f "$list" ] || continue
             while read -r p; do
               [ -z "$p" ] && continue
-              dnf -q repoquery --qf '%{name}' "$p" | grep -qx "$p" || missing="$missing $p"
+              dnf -q repoquery --qf '%{name}' "$p" 2>/dev/null | grep -qx "$p" \
+                || missing="$missing $p"
             done < <(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' "$list")
           done
           if [ -n "$missing" ]; then echo "not resolvable:$missing"; exit 1; fi
