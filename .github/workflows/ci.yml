@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  shell:
+    name: Shell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y shellcheck
+          shellcheck -S warning bootstrap.sh install.sh bin/bhctl lib/*.sh scripts/*.sh
+      - name: bash -n
+        run: for f in bootstrap.sh install.sh bin/bhctl lib/*.sh scripts/*.sh; do bash -n "$f"; done
+
+  python:
+    name: Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pipx install ruff
+      - run: ruff check theme/apply-theme.py scripts/*.py settings-gui/
+      - run: python -m py_compile theme/apply-theme.py scripts/*.py
+
+  lua:
+    name: Lua
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y lua5.4
+      - name: syntax
+        run: for f in dotfiles/hypr/*.lua; do luac5.4 -p "$f"; done
+      - name: settings.example.lua really is plain data
+        # A settings file that calls a function would break the settings GUI,
+        # which reads it as data.
+        run: |
+          grep -nE '\b(os|io|require|dofile|loadstring|load)\s*[.(]' \
+            dotfiles/hypr/settings.example.lua && {
+              echo "settings.example.lua must contain data only"; exit 1; } || true
+
+  theme:
+    name: Theme renders
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: every flavour renders with no placeholders left
+        run: |
+          for flavour in mocha macchiato frappe latte; do
+            XDG_CONFIG_HOME=/tmp/out-$flavour XDG_STATE_HOME=/tmp/state-$flavour \
+              python3 theme/apply-theme.py --flavour "$flavour" --accent mauve --no-reload
+            if grep -rq '{{' /tmp/out-$flavour; then
+              echo "unresolved placeholder in $flavour"; grep -rn '{{' /tmp/out-$flavour; exit 1
+            fi
+          done
+
+  docs:
+    name: Docs in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y lua5.4
+      - name: KEYBINDS.md matches the config
+        run: python3 scripts/gen-keybinds-doc.py --check
+      - name: German docs are not older than the English source
+        run: |
+          fail=0
+          for de in docs/de/*.md; do
+            [ -e "$de" ] || continue
+            en="docs/$(basename "$de")"
+            [ -e "$en" ] || continue
+            if [ "$en" -nt "$de" ]; then
+              echo "::warning::$de is older than $en"; fail=1
+            fi
+          done
+          exit 0
+
+  packages:
+    name: Package names exist
+    runs-on: ubuntu-latest
+    container: fedora:44
+    steps:
+      - uses: actions/checkout@v4
+      - name: enable the COPRs
+        run: |
+          dnf install -y dnf-plugins-core 'dnf-command(copr)'
+          while read -r c; do [ -n "$c" ] && dnf copr enable -y "$c" || true; done \
+            < <(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' packages/copr.txt)
+      - name: resolve every package
+        # This is the step that would have caught a wrong package name before it
+        # reached a machine. Guessing names is how the previous setup shipped a
+        # dnf line that never worked.
+        run: |
+          missing=""
+          for list in packages/dnf-*.txt packages/copr-*.txt; do
+            while read -r p; do
+              [ -z "$p" ] && continue
+              dnf -q repoquery --qf '%{name}' "$p" | grep -qx "$p" || missing="$missing $p"
+            done < <(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' "$list")
+          done
+          if [ -n "$missing" ]; then echo "not resolvable:$missing"; exit 1; fi
+          echo "all package names resolve"
+
+  secrets:
+    name: Nothing private
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+      - name: no host addresses, home paths or keys
+        # This repository is public. The Proxmox side of the project lives
+        # outside it precisely so none of this can leak in.
+        run: |
+          bad=0
+          if grep -rInE '192\.168\.[0-9]+\.[0-9]+' --exclude-dir=.git . ; then
+            echo "::error::a private IP address is committed"; bad=1
+          fi
+          if grep -rInE '/home/[a-z]+/' --exclude-dir=.git --exclude='*.md' . ; then
+            echo "::error::a hardcoded home directory is committed"; bad=1
+          fi
+          if grep -rIn 'BEGIN [A-Z ]*PRIVATE KEY' --exclude-dir=.git . ; then
+            echo "::error::a private key is committed"; bad=1
+          fi
+          exit $bad
