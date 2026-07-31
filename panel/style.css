@@ -13,6 +13,18 @@
     background: transparent;
 }
 
+/* The click catcher: a full-screen surface under the popup whose only job is
+ * to notice a click elsewhere.
+ *
+ * The alpha is 0.004 rather than 0, and that is not a rounding error. A window
+ * GTK considers entirely undrawn gets an empty input region, so the compositor
+ * passes clicks straight through it and the catcher catches nothing — measured
+ * exactly that way. A hair above zero makes the surface real without being
+ * visible: at 1/255 it cannot darken anything perceptibly. */
+.popup-catcher {
+    background-color: rgba(0, 0, 0, 0.004);
+}
+
 .popup-body {
     background-color: @popupbg;
     color: @text;

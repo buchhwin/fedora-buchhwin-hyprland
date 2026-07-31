@@ -168,6 +168,26 @@ WantedBy=graphical-session.target'
     # secret agent, so silencing it by removing the package would trade a
     # duplicate icon for Wi-Fi prompts that never appear.
 
+    # --- the bar's popups ----------------------------------------------------
+    # Resident, because starting Python and GTK4 per click was measured at 1.1
+    # seconds: 42 ms for Python, 518 ms for GTK4 and libadwaita, the rest in
+    # layer-shell and CSS. None of that is our code, so none of it can be tuned
+    # away — it can only be paid once, at login.
+    _write_unit "buchhwin-panel.service" \
+'[Unit]
+Description=Status area popups (calendar, sound, network)
+PartOf=graphical-session.target
+After=graphical-session.target buchhwin-bar.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel --daemon
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target'
+
     # --- keyring -------------------------------------------------------------
     # Without a running secret service every cloud and network drive asks for
     # its password again on every login, which defeats "sign in once".
@@ -204,7 +224,8 @@ WantedBy=graphical-session.target'
     local u
     for u in buchhwin-keyring buchhwin-clipboard buchhwin-clipboard-image \
              buchhwin-wallpaper buchhwin-bar buchhwin-notifications \
-             buchhwin-idle buchhwin-polkit buchhwin-nightlight; do
+             buchhwin-idle buchhwin-polkit buchhwin-nightlight \
+             buchhwin-panel; do
         run_quiet systemctl --user enable "$u.service" || warn "$(msg warn_unit "$u")"
     done
     run_quiet systemctl --user daemon-reload || true

@@ -29,6 +29,14 @@ from datetime import UTC, datetime, timedelta
 WINDOW_DAYS = 7
 SOON_MINUTES = 15
 
+# Seconds to wait for one calendar source. Was 10, which is a sensible timeout
+# for a background poll and a catastrophic one for anything a click waits on:
+# with a configured-but-unreachable account it cost the calendar popup 11.9
+# seconds of blank screen before the month grid appeared. Two seconds is long
+# enough for a local or cached source and short enough that a broken one is a
+# blink rather than a hang.
+CONNECT_TIMEOUT = 2
+
 
 def load_gi():
     """Import the EDS bindings, or return None with a readable reason."""
@@ -75,7 +83,7 @@ def fetch_events(days: int = WINDOW_DAYS,
             continue                       # unticked in the calendar app
         try:
             client = ECal.Client.connect_sync(
-                source, ECal.ClientSourceType.EVENTS, 10, None)
+                source, ECal.ClientSourceType.EVENTS, CONNECT_TIMEOUT, None)
             ok, comps = client.get_object_list_as_comps_sync(
                 f"(occur-in-time-range? (make-time \"{_ical(now)}\") "
                 f"(make-time \"{_ical(end)}\"))", None)

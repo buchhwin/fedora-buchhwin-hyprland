@@ -21,7 +21,7 @@ gi.require_version("Gtk", "4.0")
 
 from gi.repository import GLib, Gtk  # noqa: E402
 
-from popup import Popup, heading, launch  # noqa: E402
+from popup import PanelWindow, heading, launch, note  # noqa: E402
 
 
 def nmcli(*args: str, timeout: int = 10) -> tuple[int, str]:
@@ -122,13 +122,24 @@ def signal_icon(strength: int) -> str:
     return "network-wireless-signal-weak-symbolic"
 
 
-class NetworkPopup(Popup):
+class NetworkPopup(PanelWindow):
     name = "network"
     width = 360
 
     def build(self, window: Gtk.Window) -> Gtk.Widget:
-        self._window = window
         self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        self._populate()
+        return self._box
+
+    def refresh(self) -> None:
+        # Scanning for networks on every show, not on a timer: a Wi-Fi list
+        # that is thirty seconds old is worse than useless, and scanning while
+        # nobody is looking wastes radio time.
+        self._populate()
+
+    def _populate(self) -> None:
+        while (child := self._box.get_first_child()) is not None:
+            self._box.remove(child)
 
         kind, name, device = current_connection()
 
@@ -161,17 +172,15 @@ class NetworkPopup(Popup):
         elif kind == "ethernet":
             # A desktop on a cable has no Wi-Fi radio; saying "no networks
             # found" there would read like a fault.
-            self._box.append(self._note("No Wi-Fi adapter"))
+            self._box.append(note("No Wi-Fi adapter"))
 
         self._box.append(Gtk.Separator())
 
         settings = Gtk.Button(label="Network settings")
         settings.add_css_class("popup-action")
         settings.connect("clicked",
-                         lambda _b: launch(["nm-connection-editor"], window))
+                         lambda _b: launch(["nm-connection-editor"], self))
         self._box.append(settings)
-
-        return self._box
 
     def _network_list(self, networks: list[dict]) -> Gtk.Widget:
         scroller = Gtk.ScrolledWindow()
@@ -210,7 +219,7 @@ class NetworkPopup(Popup):
 
     def _on_pick(self, _button: Gtk.Button, net: dict) -> None:
         if net["active"]:
-            self._window.close()
+            self.hide()
             return
         if net["secure"] and not self._known(net["ssid"]):
             self._ask_password(net)
@@ -222,7 +231,7 @@ class NetworkPopup(Popup):
         return rc == 0 and ssid in out.splitlines()
 
     def _ask_password(self, net: dict) -> None:
-        dialog = Gtk.Window(title=net["ssid"], transient_for=self._window,
+        dialog = Gtk.Window(title=net["ssid"], transient_for=self.window,
                             modal=True)
         dialog.set_default_size(300, -1)
 
@@ -282,7 +291,7 @@ class NetworkPopup(Popup):
         if proc.returncode == 0:
             if dialog:
                 dialog.close()
-            self._window.close()
+            self.hide()
         else:
             message = (proc.stderr or proc.stdout or "unknown error").strip()
             self._report(dialog, message.splitlines()[-1] if message else "failed")
@@ -293,8 +302,3 @@ class NetworkPopup(Popup):
         else:
             GLib.idle_add(lambda: print(message))
 
-    def _note(self, text: str) -> Gtk.Widget:
-        label = Gtk.Label(label=text, xalign=0)
-        label.add_css_class("popup-note")
-        label.set_wrap(True)
-        return label

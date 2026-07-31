@@ -21,7 +21,7 @@ gi.require_version("Gtk", "4.0")
 
 from gi.repository import Gtk  # noqa: E402
 
-from popup import Popup, heading, launch  # noqa: E402
+from popup import PanelWindow, heading, launch, note  # noqa: E402
 
 SINK = "@DEFAULT_AUDIO_SINK@"
 
@@ -67,13 +67,25 @@ def list_sinks() -> tuple[list[dict], str]:
     return sinks, default
 
 
-class AudioPopup(Popup):
+class AudioPopup(PanelWindow):
     name = "audio"
     width = 340
 
     def build(self, window: Gtk.Window) -> Gtk.Widget:
-        self._window = window
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        # A container that refresh() refills. The popup is built once and lives
+        # for the whole session, so anything read here would be frozen at login
+        # time — the volume would be whatever it was when you logged in.
+        self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        self._populate()
+        return self._box
+
+    def refresh(self) -> None:
+        self._populate()
+
+    def _populate(self) -> None:
+        box = self._box
+        while (child := box.get_first_child()) is not None:
+            box.remove(child)
 
         volume, muted = get_volume()
 
@@ -107,16 +119,14 @@ class AudioPopup(Popup):
             box.append(heading("Output device"))
             box.append(self._device_list(sinks, default))
         elif not sinks:
-            box.append(self._note("No audio devices found"))
+            box.append(note("No audio devices found"))
 
         box.append(Gtk.Separator())
 
         settings = Gtk.Button(label="Sound settings")
         settings.add_css_class("popup-action")
-        settings.connect("clicked", lambda _b: launch(["pavucontrol"], window))
+        settings.connect("clicked", lambda _b: launch(["pavucontrol"], self))
         box.append(settings)
-
-        return box
 
     def _device_list(self, sinks: list[dict], default: str) -> Gtk.Widget:
         listbox = Gtk.ListBox()
@@ -151,10 +161,5 @@ class AudioPopup(Popup):
 
     def _on_pick_sink(self, _button: Gtk.Button, name: str) -> None:
         subprocess.run(["pactl", "set-default-sink", name], check=False)
-        self._window.close()
+        self.hide()
 
-    def _note(self, text: str) -> Gtk.Widget:
-        label = Gtk.Label(label=text, xalign=0)
-        label.add_css_class("popup-note")
-        label.set_wrap(True)
-        return label

@@ -1,90 +1,61 @@
-#!/usr/bin/env python3
-"""Popups for the bar's status area.
+#!/usr/bin/env bash
+#
+# Toggle one of the bar's popups.
+#
+#     buchhwin-panel calendar    month view and the day's appointments
+#     buchhwin-panel audio       volume, mute, output device
+#     buchhwin-panel network     connection status and Wi-Fi
+#     buchhwin-panel --daemon    the resident process (a user unit runs this)
+#
+# In the normal case this writes one line into a named pipe and exits, which
+# costs about a millisecond. The window it toggles already exists, built once
+# when the session started.
+#
+# That indirection is the entire point. Starting Python and GTK4 per click was
+# measured at 1.1 seconds — 42 ms for Python, 518 ms for GTK4 and libadwaita,
+# and the rest in layer-shell, CSS and the window. None of that is our code, so
+# none of it can be tuned away; it can only be paid once.
+#
+# If the daemon is not running the popup is started directly instead. Slow, but
+# a slow popup beats a click that does nothing.
+set -euo pipefail
 
-    buchhwin-panel calendar    month view and the day's appointments
-    buchhwin-panel audio       volume, mute, output device
-    buchhwin-panel network     connection status and Wi-Fi
+case "${1:-}" in
+    calendar|audio|network|--daemon) ;;
+    *) echo "usage: buchhwin-panel calendar|audio|network|--daemon" >&2; exit 2 ;;
+esac
 
-Each is bound to the matching Waybar module's on-click. Running the same one
-twice closes it, so clicking the clock again puts the calendar away instead of
-opening a second copy — see Popup.toggle_or_run.
-"""
+HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+FIFO="${XDG_RUNTIME_DIR:-/tmp}/buchhwin-panel.fifo"
 
-from __future__ import annotations
+# gtk4-layer-shell has to be loaded before libwayland-client. A C program does
+# that with linker order; an interpreter cannot, because importing gi pulls GTK
+# — and therefore libwayland — in first. Without the preload every popup
+# silently becomes an ordinary window: not anchored, not above tiled windows,
+# no click-outside-to-close. It still appears, which is what makes it worth
+# handling rather than ignoring.
+#
+# Resolved through ldconfig rather than hard-coded: the soname is what the
+# dynamic linker looks for, and it knows where the file actually is.
+preload() {
+    if [[ -z "${LD_PRELOAD:-}" ]]; then
+        local so
+        so="$(ldconfig -p 2>/dev/null | awk '/libgtk4-layer-shell\.so/ {print $NF; exit}')"
+        [[ -n "${so:-}" ]] && export LD_PRELOAD="$so"
+    fi
+}
 
-import ctypes.util
-import os
-import sys
-from pathlib import Path
+if [[ "$1" == "--daemon" ]]; then
+    preload
+    exec python3 "$HERE/panel.py" --daemon
+fi
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Writing to a pipe with no reader blocks forever, so never wait: if the daemon
+# is not there, this must fail immediately and fall through.
+if [[ -p "$FIFO" ]] && { true > "$FIFO"; } 2>/dev/null; then
+    printf 'toggle %s\n' "$1" > "$FIFO"
+    exit 0
+fi
 
-USAGE = "usage: buchhwin-panel calendar|audio|network"
-
-_PRELOAD_FLAG = "BUCHHWIN_PANEL_PRELOADED"
-
-
-def _ensure_layer_shell_preloaded() -> None:
-    """Re-exec with libgtk4-layer-shell in LD_PRELOAD, once.
-
-    gtk4-layer-shell has to be loaded before libwayland-client. A C program
-    controls that with linker order; an interpreter cannot, because importing
-    gi pulls in GTK — and therefore libwayland — first. The library then prints
-
-        Failed to initialize layer surface, GTK4 Layer Shell may have been
-        linked after libwayland
-
-    and every window silently becomes an ordinary one: not anchored, not above
-    tiled windows, no click-outside-to-close. The popup still appears, which is
-    what makes this worth handling rather than ignoring — it looks like it
-    works.
-
-    Upstream's documented answer for this case is LD_PRELOAD, so do it here
-    instead of putting a path in the Waybar config. The flag variable stops an
-    exec loop if the preload does not take.
-    """
-    if os.environ.get(_PRELOAD_FLAG):
-        return
-
-    soname = ctypes.util.find_library("gtk4-layer-shell")
-    if not soname:
-        return                      # not installed; popup falls back to a window
-
-    existing = os.environ.get("LD_PRELOAD", "")
-    if soname in existing:
-        return
-
-    env = dict(os.environ)
-    env["LD_PRELOAD"] = f"{soname}:{existing}" if existing else soname
-    env[_PRELOAD_FLAG] = "1"
-    try:
-        os.execve(sys.executable, [sys.executable, os.path.abspath(__file__),
-                                   *sys.argv[1:]], env)
-    except OSError:
-        return                      # carry on unanchored rather than not at all
-
-
-def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print(USAGE, file=sys.stderr)
-        return 2
-
-    # Before anything imports gi.
-    _ensure_layer_shell_preloaded()
-
-    which = argv[1]
-    if which == "calendar":
-        from calendar_popup import CalendarPopup as Klass
-    elif which == "audio":
-        from audio_popup import AudioPopup as Klass
-    elif which == "network":
-        from network_popup import NetworkPopup as Klass
-    else:
-        print(f"unknown popup: {which}\n{USAGE}", file=sys.stderr)
-        return 2
-
-    return Klass.toggle_or_run()
-
-
-if __name__ == "__main__":
-    raise SystemExit(main(sys.argv))
+preload
+exec python3 "$HERE/panel.py" "$1"
