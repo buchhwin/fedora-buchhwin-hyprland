@@ -14,6 +14,7 @@ read fresh every time the popup opens, so it can never disagree with reality.
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 
 import gi
@@ -313,3 +314,11 @@ class QuickPopup(PanelWindow):
 
     def _set_brightness(self, percent: int) -> None:
         run("brightnessctl", "-q", "set", f"{percent}%")
+        # Desktop monitors have no backlight device; they take brightness over
+        # the cable, via DDC/CI. Slow (a second or so per display) and not
+        # supported by every screen, so it runs detached and its failure is
+        # ignored — the laptop panel above must not wait on it.
+        if shutil.which("ddcutil"):
+            subprocess.Popen(["ddcutil", "--noverify", "setvcp", "10", str(percent)],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)

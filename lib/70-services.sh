@@ -214,6 +214,26 @@ RestartSec=2
 [Install]
 WantedBy=graphical-session.target'
 
+    # --- which applications you actually use ----------------------------------
+    # Counts window openings so the launcher can lead with what you reach for.
+    # Watching the compositor rather than wrapping a launcher: rofi, the dock, a
+    # keybind and the file manager all open windows, and wrapping one of them
+    # would count a quarter of the truth.
+    _write_unit "buchhwin-appusage.service" \
+'[Unit]
+Description=Count application launches for the launcher
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/fedora-buchhwin-hyprland/scripts/app-usage.py listen
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target'
+
     # --- removable drives ----------------------------------------------------
     # --no-automount is deliberately NOT set: plugging a stick in and having it
     # appear is the whole point. --notify says so; --tray would add a second
@@ -271,7 +291,8 @@ WantedBy=graphical-session.target'
     for u in buchhwin-keyring buchhwin-clipboard buchhwin-clipboard-image \
              buchhwin-wallpaper buchhwin-bar buchhwin-notifications \
              buchhwin-idle buchhwin-polkit buchhwin-nightlight \
-             buchhwin-panel buchhwin-usb buchhwin-minimize; do
+             buchhwin-panel buchhwin-usb buchhwin-minimize \
+             buchhwin-appusage; do
         run_quiet systemctl --user enable "$u.service" || warn "$(msg warn_unit "$u")"
     done
     run_quiet systemctl --user daemon-reload || true

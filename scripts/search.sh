@@ -83,8 +83,46 @@ if [[ "${1:-}" == "calc" ]]; then
     exit 0
 fi
 
+# --- frequently used ---------------------------------------------------------
+# The applications you actually open, best first, from the counts
+# scripts/app-usage.py keeps. Ranked by launches with a 30-day half-life, so it
+# reflects this month rather than "most used since installation".
+#
+# It appears as one more mode rather than reordering drun: drun's own order is
+# alphabetical and predictable, and quietly shuffling it under people is how a
+# launcher stops being learnable.
+frequent_mode() {
+    local id name file
+    while read -r id; do
+        [[ -n "$id" ]] || continue
+        name="$id"
+        for dir in /usr/share/applications /usr/local/share/applications \
+                   "$HOME/.local/share/applications" \
+                   /var/lib/flatpak/exports/share/applications; do
+            file="$dir/$id.desktop"
+            if [[ -f "$file" ]]; then
+                name="$(sed -n 's/^Name=//p' "$file" | head -1)"
+                break
+            fi
+        done
+        printf '%s\0icon\x1f%s\n' "${name:-$id}" "$id"
+    done < <(python3 "$(dirname "$0")/app-usage.py" top 12 2>/dev/null)
+}
+
+if [[ "${1:-}" == "frequent" ]]; then
+    if [[ -n "${2:-}" ]]; then
+        # rofi hands back the row it was given; launch by class is the same
+        # guess the counter records, so gtk-launch on the id is the best we can
+        # do and failing that, run it as a command.
+        gtk-launch "$2" 2>/dev/null || setsid "$2" >/dev/null 2>&1 &
+        exit 0
+    fi
+    frequent_mode
+    exit 0
+fi
+
 # --- the launcher itself ----------------------------------------------------
 exec rofi -show combi -modes "combi" \
-     -combi-modes "drun,window,files:$SELF files,calc:$SELF calc" \
+     -combi-modes "drun,window,files:$SELF files,calc:$SELF calc,frequent:$SELF frequent" \
      -matching fuzzy -sort \
      -theme-str 'window { width: 46%; }'

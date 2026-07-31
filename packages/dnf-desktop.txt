@@ -114,3 +114,8 @@ wireguard-tools
 # Audio visualiser for the bar's cava module. Optional in the sense that the
 # module is off unless the settings turn it on, but it is cheap to have.
 cava
+
+# Brightness for desktop monitors, over the display cable (DDC/CI). Optional:
+# the quick-settings slider uses it when it is there and ignores it when it is
+# not, because plenty of screens do not answer.
+ddcutil
