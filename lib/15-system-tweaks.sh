@@ -25,8 +25,8 @@ phase_tweaks() {
 
     # --- journal size --------------------------------------------------------
     # Without a limit the journal grows to 10% of the partition. That is how a
-    # machine ends up with several GB of logs nobody has ever read — measured
-    # on this project's own Proxmox host: 3.9 GB.
+    # machine ends up with several GB of logs nobody has ever read — 3.9 GB on
+    # one server this was measured on.
     step "$(msg step_journal_limit)"
     if (( DRY_RUN )); then
         printf '     %s[dry-run]%s write /etc/systemd/journald.conf.d/00-buchhwin.conf\n' "$C_DIM" "$C_RESET"
@@ -76,7 +76,7 @@ EOF
 
     # --- SSD trim ------------------------------------------------------------
     # Fedora enables this by default; it is only VERIFIED here, not forced.
-    # Its absence on the Proxmox host cost 26 GB of pool space, so it is worth
+    # Its absence once cost 26 GB of thin-pool space elsewhere, so it is worth
     # a line of output either way.
     if systemctl is-enabled fstrim.timer >/dev/null 2>&1; then
         ok "$(msg ok_fstrim)"
