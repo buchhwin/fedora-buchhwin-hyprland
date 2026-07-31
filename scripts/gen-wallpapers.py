@@ -47,11 +47,12 @@ def mix(a, b, t: float):
 def gradient(colors: dict, accent: str, w: int, h: int) -> Image.Image:
     """Diagonal wash, crust -> base, with the accent bleeding in at one corner.
 
-    Rendered small and scaled up: a 160-pixel-wide gradient upscaled with a
-    bicubic filter is smooth and costs a fraction of the time, and the result
-    is indistinguishable at wallpaper scale.
+    Computed at a reduced size and scaled up. That is safe HERE and only here:
+    a gradient has no edges, so bicubic interpolation of a smooth ramp is
+    itself a smooth ramp. 640 rather than 160 across, because at 16x even a
+    ramp starts to band on a dark background.
     """
-    sw, sh = 160, 90
+    sw, sh = 640, 360
     small = Image.new("RGB", (sw, sh))
     px = small.load()
     c0, c1, ca = rgb(colors["crust"]), rgb(colors["base"]), rgb(colors[accent])
@@ -70,7 +71,7 @@ def gradient(colors: dict, accent: str, w: int, h: int) -> Image.Image:
 
 def mesh(colors: dict, accent: str, w: int, h: int) -> Image.Image:
     """Blurred colour blobs on the darkest tone."""
-    sw, sh = 320, 180
+    sw, sh = 960, 540
     img = Image.new("RGB", (sw, sh), rgb(colors["crust"]))
     draw = ImageDraw.Draw(img, "RGBA")
 
@@ -85,31 +86,44 @@ def mesh(colors: dict, accent: str, w: int, h: int) -> Image.Image:
         x, y, rad = cx * sw, cy * sh, r * sw
         draw.ellipse([x - rad, y - rad, x + rad, y + rad], fill=(*rgb(colour), alpha))
 
-    img = img.filter(ImageFilter.GaussianBlur(radius=34))
-    return img.resize((w, h), Image.BICUBIC)
+    img = img.filter(ImageFilter.GaussianBlur(radius=100))
+    return img.resize((w, h), Image.LANCZOS)
 
 
 def waves(colors: dict, accent: str, w: int, h: int) -> Image.Image:
-    """Layered sine bands — quiet, but with more structure than a gradient."""
-    sw, sh = 480, 270
+    """Layered sine bands — quiet, but with more structure than a gradient.
+
+    Unlike the other two, this one has hard EDGES, and edges are exactly what
+    upscaling ruins: the first version drew at 480x270 and blew it up 5x, which
+    turned every wave crest into a visible staircase.
+
+    So it is supersampled instead — drawn at twice the final size and scaled
+    back down with LANCZOS. Downsampling averages several drawn pixels into
+    each output pixel, which is antialiasing done properly rather than smeared
+    over afterwards with a blur.
+    """
+    ss = 2                                  # supersampling factor
+    sw, sh = w * ss, h * ss
     img = Image.new("RGB", (sw, sh), rgb(colors["crust"]))
     draw = ImageDraw.Draw(img)
 
     layers = [
-        (0.78, 26, 1.6, colors["mantle"]),
-        (0.84, 20, 2.3, colors["base"]),
-        (0.90, 14, 3.1, colors["surface0"]),
-        (0.96, 9, 4.0, colors[accent]),
+        (0.78, 0.018, 1.6, colors["mantle"]),
+        (0.84, 0.014, 2.3, colors["base"]),
+        (0.90, 0.010, 3.1, colors["surface0"]),
+        (0.96, 0.006, 4.0, colors[accent]),
     ]
-    for base_y, amp, freq, colour in layers:
+    for base_y, amp_frac, freq, colour in layers:
+        amp = amp_frac * sh
+        # One point per output pixel: any coarser and the curve itself becomes
+        # a polygon you can see.
         points = [
             (x, base_y * sh + math.sin(x / sw * math.pi * freq) * amp)
-            for x in range(sw + 1)
+            for x in range(0, sw + 1, ss)
         ]
         draw.polygon([(0, sh), *points, (sw, sh)], fill=rgb(colour))
 
-    img = img.filter(ImageFilter.GaussianBlur(radius=1.2))
-    return img.resize((w, h), Image.BICUBIC)
+    return img.resize((w, h), Image.LANCZOS)
 
 
 STYLES = {"gradient": gradient, "mesh": mesh, "waves": waves}
