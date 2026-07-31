@@ -26,9 +26,14 @@ like Windows — everything floating, drag where you like — press
 `SUPER + SHIFT + Space`, or list those workspaces in the settings so they
 always start that way.
 
-**There is no minimize.** A tiling layout has nowhere to minimize *to*. Use
-another workspace: `SUPER + 1…9` to switch, add `ALT` to take the window along.
-Workspaces are cheap, and each is effectively a clean desk.
+**Minimize puts the window on a shelf, not into nowhere.** A tiling layout has
+nothing to minimize *to*, so one was made: a hidden workspace called
+`minimized`. The titlebar button and the dock both send the window there, and
+the dock keeps listing it — click it there to bring it back. `SUPER + SHIFT + M`
+shows the shelf, so nothing can be lost even with the dock switched off.
+
+Workspaces are still the better tool for "put this aside for an hour":
+`SUPER + 1…9` to switch, add `ALT` to take the window along.
 
 **Arrow keys move the window, not the mouse pointer.** Focus moves on
 `SUPER + h j k l`, which is one row under your right hand.

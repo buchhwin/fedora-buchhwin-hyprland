@@ -28,9 +28,10 @@ CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 UNITS = CONFIG / "systemd" / "user"
 DOCK_CONFIG = CONFIG / "waybar" / "dock.jsonc"
 UNIT_NAME = "buchhwin-dock.service"
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "buchhwin"
 
 DEFAULTS = {
-    "enabled": False,
+    "enabled": True,
     "position": "bottom",
     "icon_size": 32,
     "height": 52,
@@ -40,41 +41,54 @@ DEFAULTS = {
 }
 
 
-def settings(key: str, fallback):
-    """Read one dock.* value through scripts/settings.py."""
-    script = REPO / "scripts" / "settings.py"
+_DOCK: dict | None = None
+
+
+def _dock_settings() -> dict:
+    """Read settings.lua once.
+
+    One `dump` instead of a `get` per key. Each `get` starts Python AND a Lua
+    interpreter, and this is one of the six steps the settings app's Apply runs
+    inside a 20-second budget — apply-theme.py had already blown that same
+    budget the same way.
+    """
+    global _DOCK
+    if _DOCK is not None:
+        return _DOCK
+    _DOCK = {}
     try:
-        out = subprocess.run([sys.executable, str(script), "get", f"dock.{key}"],
+        out = subprocess.run([sys.executable, str(REPO / "scripts" / "settings.py"), "dump"],
                              capture_output=True, text=True, check=False,
-                             timeout=10).stdout.strip()
-    except (OSError, subprocess.TimeoutExpired):
-        return fallback
-    if not out or out.startswith("not found") or out == "None":
+                             timeout=15).stdout
+        _DOCK = (json.loads(out) if out.strip() else {}).get("dock") or {}
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError, AttributeError):
+        _DOCK = {}
+    return _DOCK
+
+
+def settings(key: str, fallback):
+    """Read one dock.* value out of settings.lua."""
+    value = _dock_settings().get(key)
+    if value is None:
         return fallback
     if isinstance(fallback, bool):
-        return out.lower() in ("true", "1", "yes")
+        return value if isinstance(value, bool) else str(value).lower() in ("true", "1", "yes")
     if isinstance(fallback, int):
         try:
-            return int(out)
-        except ValueError:
+            return int(value)
+        except (TypeError, ValueError):
             return fallback
-    return out
+    return value
 
 
 def pinned_apps() -> list[str]:
     """The pinned list, as desktop-entry ids without the .desktop suffix."""
-    script = REPO / "scripts" / "settings.py"
-    try:
-        out = subprocess.run([sys.executable, str(script), "get", "dock.pinned"],
-                             capture_output=True, text=True, check=False,
-                             timeout=10).stdout.strip()
-    except (OSError, subprocess.TimeoutExpired):
+    value = _dock_settings().get("pinned")
+    if isinstance(value, dict):        # Lua tables arrive as {"1": "kitty", ...}
+        value = [value[k] for k in sorted(value)]
+    if not isinstance(value, list):
         return []
-    if not out or out.startswith("not found"):
-        return []
-    # settings.py prints a Lua-ish list; accept both that and plain JSON.
-    cleaned = out.strip().strip("{}[]")
-    return [p.strip().strip("\"'") for p in cleaned.split(",") if p.strip()]
+    return [str(v) for v in value if str(v).strip()]
 
 
 def build_config() -> dict:
@@ -88,6 +102,9 @@ def build_config() -> dict:
     config["height"] = settings("height", DEFAULTS["height"])
     config[f"margin-{position}"] = margin
     config["wlr/taskbar"]["icon-size"] = settings("icon_size", DEFAULTS["icon_size"])
+    # Icons follow the palette. Pinned to Papirus-Dark, a light flavour got dark
+    # icons on a light dock — the same mismatch the GTK templates had.
+    config["wlr/taskbar"]["icon-theme"] = _icon_theme()
 
     # Pinned launchers are ordinary custom modules; the dock does not need to
     # know what an application is, only how to start one.
@@ -115,6 +132,21 @@ def build_config() -> dict:
         # reserving space. Not the same as hiding, and labelled as such.
         config["exclusive"] = False
     return config
+
+
+def _icon_theme() -> str:
+    """Papirus-Light on a light palette, Papirus-Dark otherwise.
+
+    Read from the state file apply-theme.py writes, so there is no second place
+    that decides what "light" means.
+    """
+    try:
+        state = json.loads((STATE / "theme.json").read_text())
+        palette = json.loads(
+            (REPO / "theme" / "palettes" / f"{state['flavour']}.json").read_text())
+        return "Papirus-Dark" if palette.get("dark", True) else "Papirus-Light"
+    except (OSError, KeyError, json.JSONDecodeError):
+        return "Papirus-Dark"
 
 
 def _pin_label(app: str) -> str:

@@ -193,6 +193,27 @@ RestartSec=2
 [Install]
 WantedBy=graphical-session.target'
 
+    # --- minimize ------------------------------------------------------------
+    # Windows carry a minimize button now, so the button has to do something.
+    # Hyprland has no minimize of its own; this listens on its event socket and
+    # moves the window to a special workspace, which the dock's taskbar still
+    # lists. Restart=always because the compositor's socket goes away with the
+    # session and comes back with the next one.
+    _write_unit "buchhwin-minimize.service" \
+'[Unit]
+Description=Minimize windows to a special workspace
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/fedora-buchhwin-hyprland/scripts/minimize.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target'
+
     # --- removable drives ----------------------------------------------------
     # --no-automount is deliberately NOT set: plugging a stick in and having it
     # appear is the whole point. --notify says so; --tray would add a second
@@ -250,7 +271,7 @@ WantedBy=graphical-session.target'
     for u in buchhwin-keyring buchhwin-clipboard buchhwin-clipboard-image \
              buchhwin-wallpaper buchhwin-bar buchhwin-notifications \
              buchhwin-idle buchhwin-polkit buchhwin-nightlight \
-             buchhwin-panel buchhwin-usb; do
+             buchhwin-panel buchhwin-usb buchhwin-minimize; do
         run_quiet systemctl --user enable "$u.service" || warn "$(msg warn_unit "$u")"
     done
     run_quiet systemctl --user daemon-reload || true

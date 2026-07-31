@@ -133,6 +133,11 @@ hl.bind("SUPER + SHIFT + Up",    hl.dsp.exec_cmd(tokens.snap .. " maximize"))
 -- Turn the current workspace into a floating one and back.
 hl.bind("SUPER + SHIFT + Space", hl.dsp.exec_cmd(tokens.floatws))
 
+-- Minimized windows live on their own special workspace (scripts/minimize.py
+-- puts them there when a titlebar button or the dock asks). This shows it, so
+-- they are reachable without the dock — and so nothing can be lost.
+hl.bind("SUPER + SHIFT + m", hl.dsp.workspace.toggle_special("minimized"))
+
 -- Resizing lives on CTRL + the letter keys. CTRL + arrows is taken by the
 -- plain halves above.
 hl.bind("SUPER + CTRL + h", hl.dsp.window.resize({ x = -60, y = 0 }), { repeating = true })

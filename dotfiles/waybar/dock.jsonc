@@ -27,9 +27,16 @@
     "wlr/taskbar": {
         "format": "{icon}",
         "icon-size": 32,
+        // Follows the palette: scripts/dock.py rewrites this from the
+        // active theme, so a light flavour gets light icons.
         "icon-theme": "Papirus-Dark",
         "tooltip-format": "{title}",
-        "on-click": "activate",
+        // minimize-raise, not activate: clicking the entry of the window you
+        // are looking at puts it away, and clicking again brings it back — the
+        // behaviour every taskbar has had for thirty years. scripts/minimize.py
+        // turns Hyprland's minimize event into a move to special:minimized,
+        // which is what gives the window somewhere to go.
+        "on-click": "minimize-raise",
         "on-click-middle": "close",
         "on-click-right": "fullscreen",
         // Never show the dock's own bar, and never the settings window twice.
