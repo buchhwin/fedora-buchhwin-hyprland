@@ -8,21 +8,29 @@ without importing the window back and creating a cycle.
 
 from __future__ import annotations
 
-from pathlib import Path
-import subprocess
-import sys
-
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, GLib, Gtk
 
-from ..helpers import (ACCENTS, FLAVOURS, REPO, STATE, combo_row,  # noqa: F401
-                       cursor_themes, group, page, pinnable_apps, run,
-                       run_lines, slider_row, spin_row, switch_row)
-from ..keycapture import KeyCaptureDialog  # noqa: E402
+from ..helpers import (  # noqa: F401
+    ACCENTS,
+    FLAVOURS,
+    REPO,
+    STATE,
+    combo_row,
+    cursor_themes,
+    group,
+    page,
+    pinnable_apps,
+    run,
+    run_lines,
+    slider_row,
+    spin_row,
+    switch_row,
+)
 
 
 def build(win):
@@ -156,7 +164,8 @@ def _rebuild_pins(win):
 
     pinned = win.s.get("dock.pinned", []) or []
     for app in pinned:
-        row = Adw.ActionRow(title=app)
+        # Escaped: a desktop id can contain & and Adw parses titles as markup.
+        row = Adw.ActionRow(title=GLib.markup_escape_text(app))
         remove = Gtk.Button(icon_name="list-remove-symbolic",
                             valign=Gtk.Align.CENTER)
         remove.connect("clicked", lambda *a, _f=_on_unpin: _f(win, *a[1:]), app)

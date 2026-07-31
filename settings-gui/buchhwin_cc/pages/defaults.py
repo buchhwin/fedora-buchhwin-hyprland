@@ -10,20 +10,30 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-import subprocess
-import sys
 
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gtk
 
-from ..helpers import (ACCENTS, FLAVOURS, REPO, STATE, combo_row,  # noqa: F401
-                       cursor_themes, group, page, pinnable_apps, run,
-                       run_lines, slider_row, spin_row, switch_row)
-from ..keycapture import KeyCaptureDialog  # noqa: E402
+from ..helpers import (  # noqa: F401
+    ACCENTS,
+    FLAVOURS,
+    REPO,
+    STATE,
+    combo_row,
+    cursor_themes,
+    group,
+    page,
+    pinnable_apps,
+    run,
+    run_lines,
+    slider_row,
+    spin_row,
+    switch_row,
+)
 
 
 def build(win):
@@ -79,7 +89,7 @@ def _installed_apps() -> list[tuple[str, str]]:
     seen: dict[str, str] = {}
     for base in ("/usr/share/applications",
                  "/usr/local/share/applications",
-                 str(Path(DATA_HOME := os.environ.get(
+                 str(Path(os.environ.get(
                      "XDG_DATA_HOME", Path.home() / ".local/share")) / "applications"),
                  "/var/lib/flatpak/exports/share/applications"):
         d = Path(base)

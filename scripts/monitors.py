@@ -26,7 +26,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
-import settings as S  # noqa: E402
+import settings as S
 
 
 def hyprctl_json(*args: str):

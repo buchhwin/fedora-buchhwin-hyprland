@@ -23,9 +23,9 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gtk  # noqa: E402
+from gi.repository import Adw, GLib, Gtk
 
-from ..helpers import REPO, group, page, run_lines  # noqa: E402
+from ..helpers import REPO, group, page, run_lines
 
 
 def _script() -> str:
@@ -119,7 +119,12 @@ def _rebuild(win, needle: str) -> None:
     # reach the rest. The count says so rather than pretending this is all.
     shown = entries[:60]
     for entry in shown:
-        row = Adw.SwitchRow(title=entry["name"], subtitle=entry["id"],
+        # Escaped, because Adw rows parse their title as Pango markup and an
+        # application called "OpenJDK Monitoring & Management Console" then
+        # produces "Entity did not end with a semicolon" and renders nothing.
+        # These names come from .desktop files we do not control.
+        row = Adw.SwitchRow(title=GLib.markup_escape_text(entry["name"]),
+                            subtitle=GLib.markup_escape_text(entry["id"]),
                             active=not entry["hidden"])
         row.connect("notify::active",
                     lambda r, _p, e=entry: _toggle(win, e["id"], r.get_active()))

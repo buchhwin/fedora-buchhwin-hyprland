@@ -18,10 +18,9 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import GLib, Gtk  # noqa: E402
-
-from popup import PanelWindow, heading, launch, note  # noqa: E402
-import weather  # noqa: E402
+import weather
+from gi.repository import GLib, Gtk
+from popup import PanelWindow, heading, launch, note
 
 # scripts/calendar.py is loaded by PATH, deliberately not by putting scripts/ on
 # sys.path: it is called calendar.py, and a plain `import calendar` would then
@@ -152,7 +151,7 @@ class CalendarPopup(PanelWindow):
         def work() -> None:
             try:
                 rows = self._events_for(day)
-            except Exception as exc:                      # noqa: BLE001
+            except Exception as exc:
                 rows = [("error", str(exc))]
             GLib.idle_add(self._deliver, token, day, rows)
 

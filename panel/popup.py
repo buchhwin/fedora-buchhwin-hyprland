@@ -36,7 +36,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 # Side margin matches the bar's own (waybar config.jsonc), so the popup's right
 # edge lines up with the right edge of the bar rather than sitting proud of it.
@@ -163,7 +163,7 @@ class PanelWindow:
         # looking at should cost nothing at all.
         try:
             self.refresh()
-        except Exception as exc:                          # noqa: BLE001
+        except Exception as exc:
             print(f"{self.name}: refresh failed: {exc}", file=sys.stderr)
         self.catcher.present()
         self.window.present()

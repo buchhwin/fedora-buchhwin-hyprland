@@ -18,16 +18,33 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
-from .pages import (about, accounts, apps, autostart, defaults, displays,  # noqa: E402
-                    drives, input as input_page, keys, look, network, power,
-                    sound, theme, updates, wallpaper, welcome)
-from .helpers import REPO, STATE  # noqa: E402
+from .helpers import REPO, STATE
+from .pages import (
+    about,
+    accounts,
+    apps,
+    autostart,
+    defaults,
+    displays,
+    drives,
+    keys,
+    look,
+    network,
+    power,
+    sound,
+    theme,
+    updates,
+    wallpaper,
+    welcome,
+)
+from .pages import input as input_page
+
 # S is the settings.lua reader/writer, on sys.path courtesy of store.py. The
 # drives page reloads the file after drives.py has rewritten it, so it needs
 # the module itself and not the Settings wrapper's cached copy.
-from .store import S, Settings  # noqa: E402
+from .store import S, Settings
 
 # The order of the sidebar. Look first because it is what people open the
 # window for; About last because nobody opens it for that.
@@ -276,7 +293,7 @@ class Window(Adw.ApplicationWindow):
         def work() -> None:
             try:
                 failed = self.s.apply()
-            except Exception as exc:                      # noqa: BLE001
+            except Exception as exc:
                 failed = [str(exc)]
             GLib.idle_add(done, failed)
 
@@ -415,8 +432,8 @@ class Window(Adw.ApplicationWindow):
             connect = Gtk.Button(icon_name="view-refresh-symbolic",
                                  valign=Gtk.Align.CENTER, tooltip_text=_("Connect"))
             connect.add_css_class("flat")
-            connect.connect("clicked", lambda _b, n=d["name"], l=state:
-                            self._drive_cmd("mount", n, l))
+            connect.connect("clicked", lambda _b, n=d["name"], st=state:
+                            self._drive_cmd("mount", n, st))
             row.add_suffix(connect)
 
             remove = Gtk.Button(icon_name="user-trash-symbolic",

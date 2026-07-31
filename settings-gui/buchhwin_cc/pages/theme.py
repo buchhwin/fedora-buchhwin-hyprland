@@ -8,7 +8,6 @@ without importing the window back and creating a cycle.
 
 from __future__ import annotations
 
-from pathlib import Path
 import shutil
 import subprocess
 import sys
@@ -18,13 +17,27 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gtk
 
-from ..helpers import (ACCENTS, FLAVOURS, REPO, STATE, accents_for,  # noqa: F401
-                       combo_row, families, palettes,
-                       cursor_themes, group, page, pinnable_apps, run,
-                       run_lines, slider_row, spin_row, switch_row)
-from ..keycapture import KeyCaptureDialog  # noqa: E402
+from ..helpers import (  # noqa: F401
+    ACCENTS,
+    FLAVOURS,
+    REPO,
+    STATE,
+    accents_for,
+    combo_row,
+    cursor_themes,
+    families,
+    group,
+    page,
+    palettes,
+    pinnable_apps,
+    run,
+    run_lines,
+    slider_row,
+    spin_row,
+    switch_row,
+)
 
 
 def build(win):

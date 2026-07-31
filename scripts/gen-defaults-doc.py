@@ -13,7 +13,7 @@ with the system it describes.
 from __future__ import annotations
 
 import re
-import subprocess
+import shutil
 import sys
 from pathlib import Path
 
@@ -77,11 +77,16 @@ def mime_rows() -> list[tuple[str, str]]:
 
 
 def installed(command: str) -> str:
-    """A tick when the program is actually on this machine."""
+    """A tick when the program is actually on this machine.
+
+    Both branches used to return the same empty string, so the column was
+    always blank and the function did nothing at all — the marks had been lost
+    somewhere along the way. `command -v` is a shell builtin and not a program,
+    so it also has to be run through a shell to answer anything.
+    """
     binary = command.split()[0]
-    found = subprocess.run(["command", "-v", binary], capture_output=True,
-                           shell=False, check=False)
-    return "" if found.returncode else ""
+    found = shutil.which(binary)
+    return "yes" if found else "—"
 
 
 def render() -> str:

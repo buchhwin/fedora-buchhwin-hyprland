@@ -26,14 +26,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import gi  # noqa: E402
+import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gio, GLib  # noqa: E402
-
-from popup import FIFO, load_css  # noqa: E402
+from gi.repository import Adw, Gio, GLib
+from popup import FIFO, load_css
 
 NAMES = ("calendar", "audio", "network", "bluetooth", "quick", "overview",
          "media",
@@ -99,7 +98,7 @@ class Panel(Adw.Application):
         for name in NAMES:
             try:
                 self._get(name)
-            except Exception as exc:                      # noqa: BLE001
+            except Exception as exc:
                 print(f"panel: could not build {name}: {exc}", file=sys.stderr)
 
     def _get(self, name: str):

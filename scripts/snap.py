@@ -178,7 +178,7 @@ def main(argv: list[str]) -> int:
     if action.startswith("smart-"):
         direction = action.split("-", 1)[1]
         if not floating:
-            dispatch('hl.dsp.focus({ direction = "%s" })' % direction)
+            dispatch(f'hl.dsp.focus({{ direction = "{direction}" }})')
             return 0
         action = {"left": "left", "right": "right",
                   "up": "maximize", "down": "restore"}[direction]

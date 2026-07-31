@@ -9,6 +9,12 @@
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# `_` is a real name here, not an undefined one. The settings application's
+# entry point calls gettext.install(), which puts _() into builtins for every
+# module it then imports — so every page module uses it without importing it.
+# Without this ruff reports F821 on more than a hundred correct lines, and a
+# linter that cries wolf a hundred times is a linter nobody reads.
+builtins = ["_"]
 
 [tool.ruff.lint]
 # Deliberately narrow. The point of a linter here is to catch mistakes, not to
@@ -16,6 +22,7 @@ target-version = "py312"
 # while the PL* family mostly counts things (returns, arguments, branches) and
 # SIM rewrites readable code into denser code.
 select = ["E", "F", "W", "I", "UP", "B", "C4", "RUF"]
+
 
 ignore = [
     # Times shown to a human must be in THAT human's timezone. Every
@@ -42,6 +49,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# The GUI needs its gi.require_version() calls before the imports they guard.
+# gi.require_version() MUST run before the import it guards, so those imports
+# cannot move to the top of the file. That is a GTK requirement, not a style
+# choice — and it applies to the panel popups exactly as it does to the GUI.
 "settings-gui/*" = ["E402"]
 "scripts/*.py" = ["E402"]
+"panel/*.py" = ["E402"]
+"theme/*.py" = ["E402"]

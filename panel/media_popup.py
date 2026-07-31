@@ -22,9 +22,8 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import Gdk, GdkPixbuf, Gtk  # noqa: E402
-
-from popup import PanelWindow, heading, note  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, Gtk
+from popup import PanelWindow, heading, note
 
 ART_SIZE = 64
 
@@ -108,7 +107,7 @@ class MediaPopup(PanelWindow):
                     Gdk.Texture.new_for_pixbuf(pixbuf))
                 image.set_size_request(ART_SIZE, ART_SIZE)
                 image.add_css_class("media-art")
-            except Exception:           # noqa: BLE001 — a bad image is not fatal
+            except Exception:
                 image = Gtk.Image.new_from_icon_name("audio-x-generic-symbolic")
         else:
             image = Gtk.Image.new_from_icon_name("audio-x-generic-symbolic")

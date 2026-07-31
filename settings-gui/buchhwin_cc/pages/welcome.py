@@ -18,9 +18,9 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gtk  # noqa: E402
+from gi.repository import Adw, Gtk
 
-from ..helpers import STATE, group, page  # noqa: E402
+from ..helpers import STATE, group, page
 
 # Written once the page has been seen, so it stops being the landing page.
 SEEN = "welcome-seen"

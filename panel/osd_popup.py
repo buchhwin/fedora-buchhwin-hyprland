@@ -24,9 +24,8 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import GLib, Gtk  # noqa: E402
-
-from popup import PanelWindow  # noqa: E402
+from gi.repository import GLib, Gtk
+from popup import PanelWindow
 
 # Long enough to read, short enough not to sit in the way of what you are doing.
 HIDE_AFTER_MS = 1400
@@ -44,7 +43,7 @@ def volume() -> tuple[int, bool]:
     out = run("wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@")
     muted = "MUTED" in out
     try:
-        return int(round(float(out.split()[1]) * 100)), muted
+        return round(float(out.split()[1]) * 100), muted
     except (IndexError, ValueError):
         return 0, muted
 
@@ -53,7 +52,7 @@ def microphone() -> tuple[int, bool]:
     out = run("wpctl", "get-volume", "@DEFAULT_AUDIO_SOURCE@")
     muted = "MUTED" in out
     try:
-        return int(round(float(out.split()[1]) * 100)), muted
+        return round(float(out.split()[1]) * 100), muted
     except (IndexError, ValueError):
         return 0, muted
 

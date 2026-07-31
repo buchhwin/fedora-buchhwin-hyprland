@@ -19,9 +19,8 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import GLib, Gtk  # noqa: E402
-
-from popup import PanelWindow, heading, launch, note  # noqa: E402
+from gi.repository import GLib, Gtk
+from popup import PanelWindow, heading, launch, note
 
 
 def nmcli(*args: str, timeout: int = 10) -> tuple[int, str]:
@@ -119,7 +118,7 @@ def radio_state() -> dict:
         return {}
     parts = out.split(":")
     keys = ("wifi_hw", "wifi", "wwan_hw", "wwan")
-    return dict(zip(keys, parts)) if len(parts) >= 4 else {}
+    return dict(zip(keys, parts, strict=False)) if len(parts) >= 4 else {}
 
 
 def ip_details(device: str) -> list[str]:

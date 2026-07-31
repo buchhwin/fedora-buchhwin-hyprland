@@ -7,9 +7,9 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
-import settings as S  # noqa: E402
+import settings as S
 
-from .helpers import run  # noqa: E402
+from .helpers import run
 
 
 class Settings:

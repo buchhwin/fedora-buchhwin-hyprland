@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gdk, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, GLib, Gtk
 
 
 class KeyCaptureDialog(Adw.Window):
@@ -18,7 +20,7 @@ class KeyCaptureDialog(Adw.Window):
     work.
     """
 
-    MODS = [
+    MODS: ClassVar[list] = [
         (Gdk.ModifierType.SUPER_MASK, "SUPER"),
         (Gdk.ModifierType.CONTROL_MASK, "CTRL"),
         (Gdk.ModifierType.ALT_MASK, "ALT"),

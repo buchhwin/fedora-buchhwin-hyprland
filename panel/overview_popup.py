@@ -27,9 +27,8 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import Gdk, GLib, Gtk  # noqa: E402
-
-from popup import PanelWindow, heading  # noqa: E402
+from gi.repository import Gdk, GLib, Gtk
+from popup import PanelWindow
 
 
 def hyprctl_json(*args: str):
@@ -181,9 +180,14 @@ class OverviewPopup(PanelWindow):
         label.set_max_width_chars(22)
         row.append(label)
 
+        # The address is pulled out BEFORE the lambda. A default argument that
+        # calls a function is evaluated once at definition, which happens to be
+        # right here — but it reads as a bug to everyone who meets it, and the
+        # loop variable it is guarding against is the real reason it is bound
+        # at all.
+        address = window.get("address")
         click = Gtk.GestureClick()
-        click.connect("pressed",
-                      lambda *_a, a=window.get("address"): self._go_window(a))
+        click.connect("pressed", lambda *_a, a=address: self._go_window(a))
         row.add_controller(click)
         return row
 

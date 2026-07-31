@@ -59,7 +59,7 @@ NOISE = [
     r"remmina-gnome",               # the session helper, not Remmina itself
     r"org\.remmina\.Remmina-file",
 ]
-NOISE_RE = re.compile("^(?:%s)$" % "|".join(NOISE))
+NOISE_RE = re.compile("^(?:{})$".format("|".join(NOISE)))
 
 
 def system_entries() -> dict[str, Path]:

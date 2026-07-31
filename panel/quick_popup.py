@@ -22,9 +22,8 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import GLib, Gtk  # noqa: E402
-
-from popup import PanelWindow, heading, launch, note  # noqa: E402
+from gi.repository import GLib, Gtk
+from popup import PanelWindow, heading, launch
 
 REPO_SCRIPTS = "~/.local/share/fedora-buchhwin-hyprland/scripts"
 
@@ -68,7 +67,7 @@ def dnd_enabled() -> bool:
 
 
 def nightlight_enabled() -> bool:
-    code, out = run("systemctl", "--user", "is-active", "buchhwin-nightlight.service")
+    _code, out = run("systemctl", "--user", "is-active", "buchhwin-nightlight.service")
     return out.strip() == "active"
 
 
@@ -93,7 +92,7 @@ def firewall_enabled() -> bool | None:
     code, out = run("systemctl", "is-enabled", "ufw.service")
     if code != 0 and not out:
         return None
-    code2, active = run("systemctl", "is-active", "ufw.service")
+    _code2, active = run("systemctl", "is-active", "ufw.service")
     return active.strip() == "active"
 
 
@@ -137,7 +136,7 @@ def volume() -> tuple[int, bool]:
         value = float(out.split()[1])
     except (IndexError, ValueError):
         return 0, muted
-    return int(round(value * 100)), muted
+    return round(value * 100), muted
 
 
 class QuickPopup(PanelWindow):

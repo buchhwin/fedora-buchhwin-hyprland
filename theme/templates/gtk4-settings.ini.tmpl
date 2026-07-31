@@ -9,6 +9,9 @@ gtk-icon-theme-name={{icon_theme}}
 gtk-cursor-theme-name={{cursor_theme}}
 gtk-cursor-theme-size={{cursor_size}}
 gtk-font-name=Inter 11
-gtk-application-prefer-dark-theme={{prefer_dark}}
+# NOT gtk-application-prefer-dark-theme: libadwaita warns that the key is
+# unsupported and tells you to use AdwStyleManager:color-scheme, which is
+# exactly what apply_gsettings() sets. Setting both means one warning per
+# application start and no benefit.
 gtk-decoration-layout={{button_layout}}
 gtk-enable-animations=1

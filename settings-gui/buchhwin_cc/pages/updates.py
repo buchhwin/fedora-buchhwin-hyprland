@@ -14,7 +14,6 @@ read what went wrong. That is the same choice the rclone setup already makes.
 from __future__ import annotations
 
 import subprocess
-import sys
 import threading
 
 import gi
@@ -22,9 +21,9 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, GLib, Gtk
 
-from ..helpers import REPO, group, page  # noqa: E402
+from ..helpers import REPO, group, page
 
 # dnf's exit codes: 0 = nothing to do, 100 = updates available, 1 = error.
 # Treating 100 as failure is the classic way to build an update page that

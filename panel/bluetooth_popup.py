@@ -21,9 +21,8 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import GLib, Gtk  # noqa: E402
-
-from popup import PanelWindow, heading, launch, note  # noqa: E402
+from gi.repository import GLib, Gtk
+from popup import PanelWindow, heading, launch, note
 
 MAC = re.compile(r"^([0-9A-F]{2}:){5}[0-9A-F]{2}$", re.I)
 

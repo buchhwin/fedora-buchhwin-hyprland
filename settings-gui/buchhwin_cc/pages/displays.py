@@ -8,7 +8,6 @@ without importing the window back and creating a cycle.
 
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
 import sys
 
@@ -17,15 +16,28 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, GLib, Gtk
 
-from ..helpers import (ACCENTS, FLAVOURS, REPO, STATE, combo_row,  # noqa: F401
-                       cursor_themes, group, page, pinnable_apps, run,
-                       run_lines, slider_row, spin_row, switch_row)
-from ..keycapture import KeyCaptureDialog  # noqa: E402
+from ..helpers import (  # noqa: F401
+    ACCENTS,
+    FLAVOURS,
+    REPO,
+    STATE,
+    combo_row,
+    cursor_themes,
+    group,
+    page,
+    pinnable_apps,
+    run,
+    run_lines,
+    slider_row,
+    spin_row,
+    switch_row,
+)
+
 # S reads settings.lua straight from disk: monitors.py writes the file
 # behind this window's back, so the cached copy would be stale.
-from ..store import S  # noqa: E402
+from ..store import S
 
 
 def build(win):
@@ -43,8 +55,9 @@ def build(win):
     if monitors:
         for m in monitors:
             g.add(Adw.ActionRow(
-                title=f"{m.get('name', '?')} — {m.get('description', '')}".strip(" —"),
-                subtitle=(f"{m.get('width')}×{m.get('height')} "
+                title=GLib.markup_escape_text(
+                    f"{m.get('name', '?')} — {m.get('description', '')}".strip(" —")),
+                subtitle=(f"{m.get('width')}x{m.get('height')} "
                           f"@ {round(m.get('refreshRate', 0))} Hz · "
                           f"scale {m.get('scale')} · "
                           f"at {m.get('x')},{m.get('y')}")))
