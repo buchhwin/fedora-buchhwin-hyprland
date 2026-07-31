@@ -1,0 +1,166 @@
+// Waybar layout. Colours live in colors.css (generated); shapes in style.css.
+//
+// The bar is a floating island rather than an edge-to-edge strip: it reads as
+// part of the desktop instead of a browser toolbar, and it leaves the corners
+// of the wallpaper visible. Switch it in the settings if you prefer full width.
+{
+    "layer": "top",
+    "position": "top",
+    "height": 38,
+    "margin-top": 8,
+    "margin-left": 12,
+    "margin-right": 12,
+    "spacing": 6,
+
+    "modules-left":   ["custom/logo", "hyprland/workspaces", "hyprland/submap"],
+    "modules-center": ["hyprland/window"],
+    "modules-right":  ["tray", "custom/recording", "pulseaudio", "bluetooth",
+                       "network", "cpu", "memory", "temperature", "battery",
+                       "clock", "custom/notifications", "custom/power"],
+
+    "custom/logo": {
+        "format": "󰣛",
+        "tooltip-format": "Applications",
+        "on-click": "rofi -show drun"
+    },
+
+    "hyprland/workspaces": {
+        "format": "{icon}",
+        "format-icons": {
+            "term": "󰆍", "web": "󰈹", "code": "󰨞", "mon": "󰍹", "chat": "󰭹",
+            "default": "", "active": "", "urgent": ""
+        },
+        "on-click": "activate",
+        "on-scroll-up": "hyprctl dispatch workspace e+1",
+        "on-scroll-down": "hyprctl dispatch workspace e-1",
+        "persistent-workspaces": { "1": [], "2": [], "3": [], "4": [], "5": [] }
+    },
+
+    "hyprland/submap": {
+        "format": "󰌌 {}",
+        "tooltip": false
+    },
+
+    "hyprland/window": {
+        "format": "{title}",
+        "max-length": 60,
+        "separate-outputs": true,
+        "rewrite": {
+            "(.*) — Brave": "󰈹 $1",
+            "(.*) - Visual Studio Code": "󰨞 $1",
+            "(.*) — Nemo": "󰉋 $1",
+            "^$": "󰇄 Desktop"
+        }
+    },
+
+    "tray": { "icon-size": 16, "spacing": 8 },
+
+    // Only visible while wf-recorder is running, so you cannot forget you are
+    // recording — a mistake that is expensive exactly once.
+    "custom/recording": {
+        "exec": "pgrep -x wf-recorder >/dev/null && echo '{\"text\":\"󰑊\",\"class\":\"recording\",\"tooltip\":\"Recording — SUPER+SHIFT+V to stop\"}' || echo '{}'",
+        "return-type": "json",
+        "interval": 2,
+        "on-click": "~/.local/share/fedora-buchhwin-hyprland/scripts/record.sh"
+    },
+
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": "󰝟 muted",
+        "format-icons": { "headphone": "󰋋", "headset": "󰋎", "default": ["󰕿", "󰖀", "󰕾"] },
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-click-right": "pavucontrol",
+        "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 2%+",
+        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-",
+        "tooltip-format": "{desc}"
+    },
+
+    "bluetooth": {
+        "format": "󰂯",
+        "format-disabled": "󰂲",
+        "format-connected": "󰂱 {num_connections}",
+        "tooltip-format-connected": "{device_enumerate}",
+        "on-click": "blueman-manager"
+    },
+
+    "network": {
+        "format-wifi": "󰤨 {essid}",
+        "format-ethernet": "󰈀 {ifname}",
+        "format-linked": "󰈀 no IP",
+        "format-disconnected": "󰤭 offline",
+        "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n󰇚 {bandwidthDownBytes}  󰕒 {bandwidthUpBytes}",
+        "on-click": "nm-connection-editor",
+        "interval": 5
+    },
+
+    "cpu": {
+        "format": "󰻠 {usage}%",
+        "interval": 3,
+        "on-click": "kitty -e btop",
+        "states": { "warning": 70, "critical": 90 }
+    },
+
+    "memory": {
+        "format": "󰍛 {percentage}%",
+        "tooltip-format": "{used:0.1f} GiB of {total:0.1f} GiB",
+        "interval": 5,
+        "on-click": "kitty -e btop",
+        "states": { "warning": 75, "critical": 92 }
+    },
+
+    "temperature": {
+        "format": "{icon} {temperatureC}°C",
+        "format-icons": ["", "", ""],
+        "critical-threshold": 82,
+        "interval": 5,
+        "tooltip": false
+    },
+
+    "battery": {
+        "format": "{icon} {capacity}%",
+        "format-charging": "󰂄 {capacity}%",
+        "format-plugged": "󰚥 {capacity}%",
+        "format-icons": ["󰁺", "󰁼", "󰁾", "󰂀", "󰂂", "󰁹"],
+        "states": { "warning": 25, "critical": 12 },
+        "tooltip-format": "{timeTo}"
+    },
+
+    "clock": {
+        "format": "󰥔 {:%H:%M}",
+        "format-alt": "󰃭 {:%a, %d %b %Y}",
+        "tooltip-format": "<tt><small>{calendar}</small></tt>",
+        "calendar": {
+            "mode": "month",
+            "weeks-pos": "right",
+            "format": {
+                "months":  "<span color='#cba6f7'><b>{}</b></span>",
+                "days":    "<span color='#cdd6f4'>{}</span>",
+                "weeks":   "<span color='#94e2d5'>W{}</span>",
+                "weekdays":"<span color='#f9e2af'><b>{}</b></span>",
+                "today":   "<span color='#f38ba8'><b><u>{}</u></b></span>"
+            }
+        }
+    },
+
+    "custom/notifications": {
+        "exec": "swaync-client -swb",
+        "return-type": "json",
+        "format": "{icon}",
+        "format-icons": {
+            "notification": "󰂚", "none": "󰂜",
+            "dnd-notification": "󰂛", "dnd-none": "󰂛",
+            "inhibited-notification": "󰂚", "inhibited-none": "󰂜",
+            "dnd-inhibited-notification": "󰂛", "dnd-inhibited-none": "󰂛"
+        },
+        "on-click": "swaync-client -t -sw",
+        "on-click-right": "swaync-client -d -sw",
+        "escape": true,
+        "tooltip": false
+    },
+
+    "custom/power": {
+        "format": "󰐥",
+        "tooltip-format": "Session",
+        "on-click": "wlogout"
+    }
+}

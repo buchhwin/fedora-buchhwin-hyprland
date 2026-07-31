@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+#
+# bhctl — one entry point for everything after the install.
+#
+# The point of this command is that you never have to remember where the repo
+# was cloned, which script does what, or which service to restart.
+#
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+export REPO_DIR
+
+# shellcheck source=../lib/common.sh
+source "$REPO_DIR/lib/common.sh"
+i18n_load "$(resolve_lang)"
+
+SETTINGS="$REPO_DIR/scripts/settings.py"
+
+usage() {
+    cat <<'EOF'
+bhctl — manage the Buchhwin Hyprland desktop
+
+  bhctl update                 Pull the repository, install new packages,
+                               relink configs, re-render the theme.
+  bhctl theme                  Show the active flavour and accent.
+  bhctl theme <flavour> [accent]
+                               Switch, e.g. `bhctl theme latte blue`.
+  bhctl theme toggle           Light <-> dark (latte <-> mocha).
+  bhctl settings [key ...]     Open the settings GUI, or print values.
+  bhctl set key=value ...      Change a setting and apply it.
+  bhctl wallpaper [file]       Pick a wallpaper, or set one directly.
+  bhctl keys                   Searchable list of keyboard shortcuts.
+  bhctl doctor                 Check the installation and report problems.
+  bhctl lang en|de             Interface language.
+  bhctl backup | restore       Save or restore your own settings.
+  bhctl version                Versions of the whole stack.
+EOF
+}
+
+# ---------------------------------------------------------------------------
+cmd_update() {
+    section "Update"
+    step "git pull"
+    git -C "$REPO_DIR" pull --ff-only
+    step "packages, configs, theme"
+    "$REPO_DIR/install.sh" --unattended --skip preflight
+}
+
+cmd_theme() {
+    local flavour="${1:-}" accent="${2:-}"
+    local current_flavour current_accent
+    current_flavour="$(python3 "$SETTINGS" get theme.flavour 2>/dev/null || echo mocha)"
+    current_accent="$(python3 "$SETTINGS" get theme.accent 2>/dev/null || echo mauve)"
+
+    if [[ -z "$flavour" ]]; then
+        printf '  %s / %s\n' "$current_flavour" "$current_accent"
+        printf '  available: mocha macchiato frappe latte\n'
+        return 0
+    fi
+
+    if [[ "$flavour" == "toggle" ]]; then
+        if [[ "$current_flavour" == "latte" ]]; then flavour="mocha"; else flavour="latte"; fi
+    fi
+    [[ -z "$accent" ]] && accent="$current_accent"
+
+    python3 "$SETTINGS" set "theme.flavour=$flavour" "theme.accent=$accent" >/dev/null
+    python3 "$REPO_DIR/theme/apply-theme.py" --flavour "$flavour" --accent "$accent"
+    hyprctl reload >/dev/null 2>&1 || true
+
+    # The wallpaper follows the flavour when asked to, so light and dark do not
+    # end up with a background that fights the palette.
+    if [[ "$(python3 "$SETTINGS" get wallpaper.follow_theme 2>/dev/null)" == "True" ]]; then
+        local wp
+        wp="$(find "$REPO_DIR/wallpapers" -iname "*${flavour}*" -type f 2>/dev/null | head -1)"
+        [[ -n "$wp" ]] && "$REPO_DIR/scripts/wallpaper.sh" set "$wp" >/dev/null 2>&1 || true
+    fi
+    ok "$flavour / $accent"
+}
+
+cmd_doctor() {
+    section "Doctor"
+    local problems=0
+
+    step "packages"
+    local missing=()
+    local list
+    for list in "$REPO_DIR"/packages/dnf-*.txt "$REPO_DIR"/packages/copr-*.txt; do
+        while read -r p; do
+            [[ -z "$p" ]] && continue
+            rpm -q "$p" >/dev/null 2>&1 || missing+=("$p")
+        done < <(read_list "$list")
+    done
+    if (( ${#missing[@]} )); then
+        warn "not installed: ${missing[*]}"
+        (( problems++ ))
+    else
+        ok "all packages present"
+    fi
+
+    step "configuration links"
+    local f
+    for f in "$CONFIG_HOME/hypr/hyprland.lua" "$CONFIG_HOME/waybar/config.jsonc" \
+             "$CONFIG_HOME/rofi/config.rasi" "$CONFIG_HOME/kitty/kitty.conf"; do
+        if [[ ! -e "$f" ]]; then
+            warn "missing: $f"; (( problems++ ))
+        elif [[ -L "$f" && ! -e "$(readlink -f "$f")" ]]; then
+            warn "broken link: $f"; (( problems++ ))
+        fi
+    done
+    (( problems == 0 )) && ok "configuration in place"
+
+    step "generated theme files"
+    for f in "$CONFIG_HOME/hypr/theme.lua" "$CONFIG_HOME/waybar/colors.css" \
+             "$CONFIG_HOME/rofi/colors.rasi" "$CONFIG_HOME/kitty/theme.conf"; do
+        [[ -f "$f" ]] || { warn "not rendered: $f (run: bhctl theme)"; (( problems++ )); }
+    done
+
+    step "settings.lua"
+    if python3 "$SETTINGS" dump >/dev/null 2>&1; then
+        ok "valid"
+    else
+        fail "settings.lua cannot be read"; (( problems++ ))
+    fi
+
+    step "user services"
+    local u
+    for u in buchhwin-bar buchhwin-notifications buchhwin-clipboard \
+             buchhwin-wallpaper buchhwin-idle buchhwin-polkit; do
+        local state; state="$(systemctl --user is-active "$u.service" 2>/dev/null || true)"
+        case "$state" in
+            active)   : ;;
+            inactive) info "$u: inactive (normal outside a graphical session)" ;;
+            *)        warn "$u: $state"; (( problems++ )) ;;
+        esac
+    done
+
+    step "fonts"
+    # The Consolas trap from the old setup: fontconfig silently substitutes a
+    # missing font, so the config looks fine and the icons are all boxes.
+    if command -v fc-match >/dev/null; then
+        local got; got="$(fc-match "JetBrainsMono Nerd Font" -f '%{family}')"
+        if [[ "$got" == *"JetBrainsMono Nerd Font"* ]]; then
+            ok "JetBrainsMono Nerd Font"
+        else
+            warn "Nerd Font missing — fontconfig substitutes '$got'"; (( problems++ ))
+        fi
+    fi
+
+    printf '\n'
+    if (( problems == 0 )); then
+        ok "no problems found"
+    else
+        warn "$problems problem(s) found"
+        return 1
+    fi
+}
+
+cmd_backup() {
+    local dest="${1:-$HOME/buchhwin-backup-$(date +%Y%m%d-%H%M%S).tar.gz}"
+    tar czf "$dest" \
+        -C "$CONFIG_HOME" hypr/settings.lua \
+        -C "$HOME" .zshrc.local 2>/dev/null || true
+    ok "backup: $dest"
+}
+
+cmd_restore() {
+    local src="${1:?usage: bhctl restore <file.tar.gz>}"
+    tar xzf "$src" -C "$CONFIG_HOME" hypr/settings.lua
+    hyprctl reload >/dev/null 2>&1 || true
+    ok "restored"
+}
+
+cmd_version() {
+    section "Versions"
+    printf '  %-14s %s\n' "setup" "$(git -C "$REPO_DIR" describe --tags --always 2>/dev/null || echo unknown)"
+    local pairs=(
+        "Hyprland:Hyprland --version"
+        "waybar:waybar --version"
+        "rofi:rofi -version"
+        "kitty:kitty --version"
+        "swaync:swaync --version"
+        "starship:starship --version"
+    )
+    local entry name cmd out
+    for entry in "${pairs[@]}"; do
+        name="${entry%%:*}"; cmd="${entry#*:}"
+        if command -v "${cmd%% *}" >/dev/null 2>&1; then
+            out="$($cmd 2>/dev/null | head -1)"
+        else
+            out="not installed"
+        fi
+        printf '  %-14s %s\n' "$name" "$out"
+    done
+    printf '  %-14s %s\n' "theme" "$(python3 "$SETTINGS" get theme.flavour 2>/dev/null || echo '?')/$(python3 "$SETTINGS" get theme.accent 2>/dev/null || echo '?')"
+}
+
+# ---------------------------------------------------------------------------
+case "${1:-help}" in
+    update)   shift; cmd_update "$@" ;;
+    theme)    shift; cmd_theme "$@" ;;
+    settings) shift
+              if (( $# )); then python3 "$SETTINGS" get "$@"
+              else exec buchhwin-control-center; fi ;;
+    set)      shift; python3 "$SETTINGS" set "$@"; "$REPO_DIR/scripts/reload.sh" ;;
+    wallpaper) shift
+              if (( $# )); then "$REPO_DIR/scripts/wallpaper.sh" set "$1"
+              else "$REPO_DIR/scripts/wallpaper-menu.sh"; fi ;;
+    keys)     exec "$REPO_DIR/scripts/keybinds-menu.sh" ;;
+    doctor)   cmd_doctor ;;
+    lang)     shift
+              mkdir -p "$STATE_DIR"
+              printf '%s\n' "${1:?usage: bhctl lang en|de}" >"$STATE_DIR/lang"
+              ok "language: $1" ;;
+    backup)   shift; cmd_backup "$@" ;;
+    restore)  shift; cmd_restore "$@" ;;
+    version|--version) cmd_version ;;
+    help|-h|--help) usage ;;
+    *)        printf 'unknown command: %s\n\n' "$1" >&2; usage; exit 2 ;;
+esac

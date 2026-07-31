@@ -1,0 +1,17 @@
+# Desktop packages that Fedora 44 does not ship. Sources are declared in
+# packages/copr.txt. Keep this list as short as possible: every entry here is a
+# third-party dependency that can break on the jump to Fedora 45.
+
+# --- solopasha/hyprland -----------------------------------------------------
+hyprland                        # the compositor (Lua config since 0.55)
+uwsm                            # universal wayland session manager
+xdg-desktop-portal-hyprland     # screen sharing / screenshot portal backend
+hyprpolkitagent                 # polkit authentication dialogs
+hyprlock                        # lock screen
+hypridle                        # idle daemon (dim / lock / dpms)
+hyprpicker                      # colour picker
+swww                            # wallpaper daemon with transitions
+satty                           # screenshot annotation
+
+# --- erikreider/SwayNotificationCenter --------------------------------------
+SwayNotificationCenter          # notification daemon + control centre panel

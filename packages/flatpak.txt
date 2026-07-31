@@ -1,0 +1,13 @@
+# Flatpaks. Native packages are always preferred; these are the applications
+# that are not packaged for Fedora, or whose native builds lag badly.
+# All IDs verified against the Flathub API on 2026-07-31.
+#
+# Everything is installed SYSTEM-WIDE (see lib/40-apps.sh) — never a mix of
+# --user and system, which is the classic way to end up with a remote the
+# install step cannot see.
+
+com.spotify.Client                # not packaged for Fedora
+com.discordapp.Discord            # not packaged for Fedora
+md.obsidian.Obsidian              # not packaged for Fedora
+org.onlyoffice.desktopeditors     # best .docx/.xlsx/.pptx fidelity on Linux
+io.dbeaver.DBeaverCommunity       # not packaged for Fedora

@@ -1,0 +1,95 @@
+/* Shared list layout for every rofi menu.
+ * Colours come from colors.rasi (generated). Shapes match the bar: 16px outer
+ * corners, 12px on the rows, 2px accent border. */
+
+window {
+    transparency:     "real";
+    location:         center;
+    anchor:           center;
+    width:            620px;
+    border:           2px;
+    border-radius:    16px;
+    border-color:     @border-col;
+    background-color: @window-bg;
+    padding:          0px;
+    children:         [ mainbox ];
+}
+
+mainbox {
+    background-color: transparent;
+    padding:          14px;
+    spacing:          10px;
+    children:         [ inputbar, message, listview ];
+}
+
+inputbar {
+    background-color: @surface0;
+    border-radius:    12px;
+    padding:          10px 14px;
+    spacing:          10px;
+    children:         [ prompt, entry ];
+}
+
+prompt {
+    background-color: transparent;
+    text-color:       @accent;
+    font:             "JetBrainsMono Nerd Font 12";
+}
+
+entry {
+    background-color: transparent;
+    text-color:       @text;
+    placeholder:      "Search";
+    placeholder-color:@overlay0;
+    cursor:           text;
+}
+
+listview {
+    background-color: transparent;
+    lines:            9;
+    columns:          1;
+    fixed-height:     false;
+    scrollbar:        false;
+    spacing:          3px;
+    dynamic:          true;
+}
+
+element {
+    background-color: @row-bg;
+    text-color:       @text;
+    padding:          9px 12px;
+    border-radius:    12px;
+    spacing:          12px;
+    children:         [ element-icon, element-text ];
+}
+
+element-icon {
+    size:             24px;
+    background-color: transparent;
+    vertical-align:   0.5;
+}
+
+element-text {
+    background-color: transparent;
+    text-color:       inherit;
+    vertical-align:   0.5;
+}
+
+element normal.normal   { background-color: transparent;   text-color: @text; }
+element alternate.normal{ background-color: transparent;   text-color: @text; }
+element selected.normal { background-color: @sel-bg;       text-color: @sel-fg; }
+element normal.urgent   { text-color: @red; }
+element selected.urgent { background-color: @red;          text-color: @crust; }
+element normal.active   { text-color: @accent; }
+element selected.active { background-color: @accent;       text-color: @crust; }
+
+message {
+    background-color: transparent;
+    padding:          0px;
+}
+textbox {
+    background-color: @surface0;
+    text-color:       @subtext1;
+    padding:          8px 12px;
+    border-radius:    12px;
+}

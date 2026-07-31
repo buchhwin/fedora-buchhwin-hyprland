@@ -1,0 +1,56 @@
+# Sysadmin toolkit. This is core, not an extra — the desktop exists to do this
+# work. Skipped only with --minimal.
+
+# --- sessions and remote access ---------------------------------------------
+tmux
+remmina
+fuse-sshfs
+rsync
+rclone
+
+# --- files and search -------------------------------------------------------
+eza
+bat
+fd-find
+ripgrep
+fzf
+zoxide
+ncdu
+duf
+
+# --- network and diagnostics ------------------------------------------------
+nmap
+mtr
+tcpdump
+iperf3
+bind-utils
+socat
+wireshark
+wireshark-cli
+iotop-c
+nvtop
+sysstat
+lsof
+strace
+
+# --- containers and virtualisation ------------------------------------------
+podman
+podman-compose
+virt-manager
+k9s
+helm
+
+# --- automation and code ----------------------------------------------------
+ansible
+python3-ansible-lint
+opentofu
+git-delta
+gh
+ShellCheck
+direnv
+just
+
+# --- databases and backup ---------------------------------------------------
+postgresql
+mysql
+restic

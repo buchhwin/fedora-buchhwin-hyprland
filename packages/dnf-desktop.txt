@@ -1,0 +1,59 @@
+# Desktop stack from the official Fedora 44 repositories.
+# Everything here is native — see packages/copr-desktop.txt for the few
+# pieces Fedora does not ship.
+
+# --- login ------------------------------------------------------------------
+sddm
+sddm-wayland-generic
+
+# --- bar, menus, notifications ---------------------------------------------
+waybar
+rofi
+wlogout
+
+# --- terminal and file manager ---------------------------------------------
+kitty
+nemo
+nemo-fileroller
+
+# --- screenshot / screen recording / clipboard ------------------------------
+grim
+slurp
+wf-recorder
+wl-clipboard
+cliphist
+
+# --- system controls --------------------------------------------------------
+pavucontrol
+blueman
+network-manager-applet
+nm-connection-editor
+brightnessctl
+playerctl
+gammastep
+
+# --- portals (file dialogs, screen sharing) ---------------------------------
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+
+# --- theming ----------------------------------------------------------------
+qt6ct
+qt6-qtwayland
+kvantum
+papirus-icon-theme
+
+# --- fonts ------------------------------------------------------------------
+# JetBrainsMono *Nerd Font* is not packaged; the plain family is, and
+# lib/50-fonts-theme.sh installs the patched Nerd Font on top of it.
+jetbrains-mono-fonts
+rsms-inter-fonts
+google-noto-color-emoji-fonts
+
+# --- runtime for the settings GUI -------------------------------------------
+python3-gobject
+gtk4
+libadwaita
+
+# --- fetch / monitor --------------------------------------------------------
+btop
+fastfetch

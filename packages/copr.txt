@@ -1,0 +1,15 @@
+# COPR repositories to enable, one per line: <owner>/<project>
+#
+# Why each one is needed (verified 2026-07-31 against Fedora 44):
+#   solopasha/hyprland                  Hyprland itself is ORPHANED in Fedora (last build 0.45.2 on
+#                                       F42, absent from F43/F44). This COPR is the only maintained
+#                                       source of the current 0.56.x line for F44.
+#   erikreider/SwayNotificationCenter   swaync is not packaged in Fedora at all.
+#   varlad/zellij                       zellij is not packaged in Fedora.
+#   atim/lazygit                        lazygit is not packaged in Fedora.
+#   atim/starship                       starship is not packaged in Fedora.
+solopasha/hyprland
+erikreider/SwayNotificationCenter
+varlad/zellij
+atim/lazygit
+atim/starship

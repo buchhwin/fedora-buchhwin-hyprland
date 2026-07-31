@@ -1,0 +1,44 @@
+# Base system packages. Installed in every profile, including --minimal.
+# One package per line. Blank lines and lines starting with # are ignored.
+
+# --- package management / bootstrap -----------------------------------------
+dnf-plugins-core
+flatpak
+git
+curl
+wget2-wget
+tar
+unzip
+jq
+
+# --- shell ------------------------------------------------------------------
+# zsh, not fish: fish is nicer out of the box but is not POSIX, so every
+# snippet copied from a wiki or a vendor doc has to be translated first. For a
+# sysadmin that trade is not worth it. The two plugins that used to be cloned
+# from GitHub are packaged by Fedora and update with everything else.
+zsh
+zsh-autosuggestions
+zsh-syntax-highlighting
+shadow-utils
+
+# Searchable, synced shell history with a fuzzy TUI. Replaces Ctrl-R.
+atuin
+
+# --- session plumbing -------------------------------------------------------
+# NetworkManager and pipewire are already present on Fedora Server, but listing
+# them makes the dependency explicit and keeps --dry-run output honest.
+NetworkManager
+pipewire-pulseaudio
+pipewire-utils
+wireplumber
+polkit
+xdg-user-dirs
+libnotify
+
+# --- used by our own scripts ------------------------------------------------
+desktop-file-utils
+ImageMagick
+gettext
+
+# Reads settings.lua for the CLI and the settings GUI. Also lets CI run luac -p.
+lua

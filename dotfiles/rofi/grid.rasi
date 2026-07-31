@@ -1,0 +1,75 @@
+/* Icon-grid layout, used by the wallpaper picker and the emoji picker.
+ *
+ * This is the reason the launcher is rofi and not fuzzel: a thumbnail grid.
+ * Picking a wallpaper from a list of file names is not picking a wallpaper. */
+
+@import "colors.rasi"
+
+window {
+    transparency:     "real";
+    location:         center;
+    anchor:           center;
+    width:            1100px;
+    height:           680px;
+    border:           2px;
+    border-radius:    16px;
+    border-color:     @border-col;
+    background-color: @window-bg;
+    children:         [ mainbox ];
+}
+
+mainbox {
+    background-color: transparent;
+    padding:          16px;
+    spacing:          12px;
+    children:         [ inputbar, listview ];
+}
+
+inputbar {
+    background-color: @surface0;
+    border-radius:    12px;
+    padding:          10px 14px;
+    spacing:          10px;
+    children:         [ prompt, entry ];
+}
+prompt { background-color: transparent; text-color: @accent;
+         font: "JetBrainsMono Nerd Font 12"; }
+entry  { background-color: transparent; text-color: @text;
+         placeholder: "Search"; placeholder-color: @overlay0; }
+
+listview {
+    background-color: transparent;
+    layout:           vertical;
+    columns:          4;
+    lines:            2;
+    spacing:          12px;
+    scrollbar:        false;
+    fixed-height:     true;
+}
+
+element {
+    background-color: @surface0;
+    border-radius:    14px;
+    padding:          8px;
+    orientation:      vertical;
+    children:         [ element-icon, element-text ];
+    spacing:          6px;
+}
+
+element-icon {
+    size:             240px;
+    background-color: transparent;
+    horizontal-align: 0.5;
+}
+
+element-text {
+    background-color: transparent;
+    text-color:       inherit;
+    horizontal-align: 0.5;
+    vertical-align:   0.5;
+}
+
+element selected {
+    background-color: @sel-bg;
+    text-color:       @sel-fg;
+}

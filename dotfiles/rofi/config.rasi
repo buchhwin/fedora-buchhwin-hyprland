@@ -1,0 +1,33 @@
+/* rofi 2.0 — one launcher for six jobs.
+ *
+ * rofi 2.0 merged the Wayland support that used to live in the rofi-wayland
+ * fork, so this is the plain Fedora package.
+ *
+ * The same theme is used by the application launcher, window switcher,
+ * clipboard history, emoji picker, wallpaper picker and keybind cheatsheet.
+ * That shared look is most of what makes the desktop feel like one thing. */
+
+@import "colors.rasi"
+@import "menu.rasi"
+
+configuration {
+    modes: "drun,run,window,filebrowser";
+    font: "Inter 12";
+
+    drun-display-format: "{name}";
+    display-drun:   "  Apps";
+    display-run:    "  Run";
+    display-window: "  Windows";
+    display-filebrowser: "  Files";
+
+    show-icons: true;
+    icon-theme: "Papirus-Dark";
+
+    /* Sort by how often you actually use things, not alphabetically. */
+    sorting-method: "fzf";
+    matching: "fuzzy";
+    drun-match-fields: "name,generic,exec,categories,keywords";
+
+    kb-cancel: "Escape,Super_L";
+    terminal: "kitty";
+}

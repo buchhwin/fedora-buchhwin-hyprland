@@ -1,0 +1,147 @@
+/* Waybar — shapes and spacing. Colours come from colors.css, which is
+ * generated from the palette, so switching flavour never touches this file.
+ *
+ * The design idea: the bar is a translucent island, and each module group is
+ * its own rounded "pill" on top of it. That is what stops it reading as a
+ * default status bar with different colours. */
+
+@import url("colors.css");
+
+* {
+    font-family: "JetBrainsMono Nerd Font", "Inter", sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+    /* No transitions on the wildcard selector: it makes every tooltip fade in
+     * and feels laggy rather than smooth. */
+}
+
+window#waybar {
+    background: transparent;
+    color: @text;
+}
+
+window#waybar.hidden { opacity: 0.2; }
+
+/* The island itself */
+.modules-left, .modules-center, .modules-right {
+    background-color: @barbg;
+    border-radius: 16px;
+    padding: 0 6px;
+    margin: 0;
+}
+
+/* --- module pills --------------------------------------------------------- */
+#custom-logo,
+#workspaces,
+#submap,
+#window,
+#tray,
+#custom-recording,
+#pulseaudio,
+#bluetooth,
+#network,
+#cpu,
+#memory,
+#temperature,
+#battery,
+#clock,
+#custom-notifications,
+#custom-power {
+    background-color: @pillbg;
+    padding: 0 12px;
+    margin: 5px 3px;
+    border-radius: 12px;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+#custom-logo {
+    color: @accent;
+    font-size: 17px;
+    padding: 0 14px;
+    background-color: transparent;
+}
+#custom-logo:hover { color: @text; background-color: @pillhover; }
+
+/* --- workspaces ----------------------------------------------------------- */
+#workspaces { padding: 0 4px; }
+
+#workspaces button {
+    color: @overlay0;
+    background: transparent;
+    padding: 0 8px;
+    margin: 0 1px;
+    border-radius: 10px;
+    transition: color 150ms ease, background-color 150ms ease;
+}
+#workspaces button.empty  { color: @surface2; }
+#workspaces button:hover  { color: @text; background-color: @pillhover; }
+#workspaces button.active {
+    color: @crust;
+    background-color: @accent;
+    padding: 0 14px;          /* the active one is wider — readable at a glance */
+}
+#workspaces button.urgent { color: @crust; background-color: @red; }
+
+#submap { color: @peach; }
+
+/* --- window title --------------------------------------------------------- */
+#window {
+    color: @subtext1;
+    font-weight: 400;
+    background-color: transparent;
+}
+window#waybar.empty #window { background-color: transparent; }
+
+/* --- right-hand side ------------------------------------------------------ */
+#tray { padding: 0 10px; }
+#tray menu { background-color: @mantle; color: @text; border-radius: 12px; }
+
+#pulseaudio { color: @sky; }
+#bluetooth  { color: @sapphire; }
+#network    { color: @teal; }
+#cpu        { color: @green; }
+#memory     { color: @yellow; }
+#temperature{ color: @peach; }
+#battery    { color: @lavender; }
+#clock      { color: @accent; font-weight: 600; }
+#custom-notifications { color: @flamingo; }
+#custom-power { color: @red; }
+
+#pulseaudio:hover, #bluetooth:hover, #network:hover, #cpu:hover, #memory:hover,
+#battery:hover, #clock:hover, #custom-notifications:hover, #custom-power:hover {
+    background-color: @pillhover;
+}
+
+#pulseaudio.muted { color: @overlay1; }
+#network.disconnected, #bluetooth.disabled { color: @overlay1; }
+
+/* States that must be impossible to overlook */
+#cpu.warning, #memory.warning, #temperature.critical { color: @yellow; }
+#cpu.critical, #memory.critical {
+    color: @crust;
+    background-color: @red;
+}
+#battery.warning:not(.charging) { color: @peach; }
+#battery.critical:not(.charging) {
+    color: @crust;
+    background-color: @red;
+}
+
+/* Recording indicator: red, and it pulses, because "still recording" is worth
+ * being slightly annoying about. */
+#custom-recording.recording {
+    color: @crust;
+    background-color: @red;
+    animation: blink 1.6s ease-in-out infinite;
+}
+@keyframes blink { 50% { background-color: @maroon; } }
+
+tooltip {
+    background-color: @barbg;
+    border: 1px solid @surface1;
+    border-radius: 12px;
+}
+tooltip label { color: @text; padding: 4px; }

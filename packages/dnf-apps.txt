@@ -1,0 +1,28 @@
+# Everyday applications, installed natively. Skipped with --minimal.
+# Third-party repositories (Brave, VS Code, RPM Fusion) are set up in
+# lib/10-repos.sh; the package names below come from those repos.
+
+# --- browser (Brave repo) ---------------------------------------------------
+# brave-origin, NOT brave-browser — deliberate choice. Both exist in the repo.
+brave-origin
+
+# --- editor (Microsoft repo) ------------------------------------------------
+code
+
+# --- media / creative (Fedora + RPM Fusion) ---------------------------------
+vlc
+obs-studio
+krita
+
+# --- mail, calendar and Exchange --------------------------------------------
+# Evolution has the most complete Exchange support on Linux (mail, calendar,
+# contacts, tasks, offline). See docs/MICROSOFT.md for the Teams/Outlook story.
+evolution
+evolution-ews
+
+# --- runtimes ---------------------------------------------------------------
+java-latest-openjdk
+java-latest-openjdk-devel
+
+# --- passwords --------------------------------------------------------------
+keepassxc

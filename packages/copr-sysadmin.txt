@@ -1,0 +1,3 @@
+# Sysadmin tools Fedora 44 does not package. Sources in packages/copr.txt.
+zellij      # terminal multiplexer, survives dropped SSH sessions (varlad/zellij)
+lazygit     # git TUI (atim/lazygit)

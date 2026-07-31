@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Settings
+GenericName=Desktop settings
+Comment=Keyboard shortcuts, window borders, theme, wallpaper and autostart
+Exec=buchhwin-control-center
+Icon=preferences-desktop
+Terminal=false
+Categories=Settings;DesktopSettings;
+Keywords=hyprland;keybinds;theme;catppuccin;wallpaper;
+StartupWMClass=buchhwin-control-center
