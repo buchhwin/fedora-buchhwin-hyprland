@@ -22,7 +22,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from .pages import (about, accounts, apps, autostart, defaults, displays,  # noqa: E402
                     drives, input as input_page, keys, look, network, power,
-                    sound, theme, wallpaper)
+                    sound, theme, updates, wallpaper)
 from .helpers import REPO, STATE  # noqa: E402
 # S is the settings.lua reader/writer, on sys.path courtesy of store.py. The
 # drives page reloads the file after drives.py has rewritten it, so it needs
@@ -32,7 +32,7 @@ from .store import S, Settings  # noqa: E402
 # The order of the sidebar. Look first because it is what people open the
 # window for; About last because nobody opens it for that.
 PAGES = [look, theme, keys, defaults, wallpaper, drives, accounts, input_page,
-         sound, network, displays, apps, power, autostart, about]
+         sound, network, displays, apps, power, autostart, updates, about]
 
 
 class Window(Adw.ApplicationWindow):

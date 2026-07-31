@@ -45,6 +45,14 @@ cmd_update() {
     git -C "$REPO_DIR" pull --ff-only
     step "packages, configs, theme"
     "$REPO_DIR/install.sh" --unattended --skip preflight
+    # Flatpaks were updated by nothing at all: lib/40-apps.sh installs them and
+    # skips any id that is already present, so once installed they stayed at
+    # the version they arrived with. They are system installs, so this prompts
+    # through the polkit agent when run inside the session.
+    if command -v flatpak >/dev/null 2>&1; then
+        step "flatpak"
+        flatpak update -y || true
+    fi
 }
 
 cmd_theme() {
