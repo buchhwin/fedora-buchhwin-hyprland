@@ -53,8 +53,12 @@
             "default": "", "active": "", "urgent": ""
         },
         "on-click": "activate",
-        "on-scroll-up": "hyprctl dispatch workspace e+1",
-        "on-scroll-down": "hyprctl dispatch workspace e-1",
+        // Lua syntax, not `hyprctl dispatch workspace e+1`. With a Lua config
+        // provider hyprctl wraps the argument in hl.dispatch(...), so the old
+        // form is a Lua syntax error and scrolling the workspaces did nothing
+        // at all — silently, because hyprctl still exits 0.
+        "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e+1\" })'",
+        "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e-1\" })'",
         "persistent-workspaces": { "1": [], "2": [], "3": [], "4": [], "5": [] }
     },
 

@@ -40,9 +40,16 @@ for c in json.loads(clients or "[]"):
     if c.get("workspace", {}).get("id") == ws:
         want_float = state == "floating"
         if bool(c.get("floating")) != want_float:
-            subprocess.run(["hyprctl", "dispatch",
-                            "setfloating" if want_float else "settiled",
-                            f"address:{c['address']}"], capture_output=True)
+            # Lua syntax. `hyprctl dispatch setfloating address:0x...` is a Lua
+            # syntax error under a Lua config provider and does nothing, while
+            # still exiting 0 — which is why toggling a workspace to floating
+            # appeared to work and left every open window tiled.
+            action = "on" if want_float else "off"
+            subprocess.run(
+                ["hyprctl", "dispatch",
+                 'hl.dsp.window.float({ action = "%s", window = "address:%s" })'
+                 % (action, c["address"])],
+                capture_output=True)
 
 subprocess.run(["hyprctl", "reload"], capture_output=True)
 subprocess.run(["notify-send", "-a", "Hyprland", f"Workspace {ws}: {state}"],

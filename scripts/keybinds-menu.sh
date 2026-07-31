@@ -20,5 +20,11 @@ choice="$(printf '%s\n' "$list" | sort | rofi -dmenu -i -p "󰌌 Shortcuts" \
 [[ -z "$choice" ]] && exit 0
 
 # Fire the binding the user picked, so the cheatsheet is also usable as a menu.
+#
+# Lua syntax: with a Lua config provider `hyprctl dispatch sendshortcut KEY`
+# arrives as hl.dispatch(sendshortcut KEY) and dies on a syntax error. The
+# dispatcher is also spelled send_shortcut there, not sendshortcut.
 key="${choice%% *}"
-hyprctl dispatch sendshortcut "$key" 2>/dev/null || true
+mods="${key%+*}"; bare="${key##*+}"
+[[ "$mods" == "$key" ]] && mods=""
+hyprctl dispatch "hl.dsp.send_shortcut({ key = \"$bare\", mods = \"$mods\" })" >/dev/null 2>&1 || true

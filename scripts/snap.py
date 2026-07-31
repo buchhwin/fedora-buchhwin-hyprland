@@ -14,7 +14,8 @@ Windows (Win+Left).
 
 Deliberately no plugin. Plugins have to be compiled against one exact Hyprland
 version and break on every update until someone rebuilds them; this uses only
-dispatchers that have existed for years.
+stock dispatchers, called through the Lua config API (see dispatch() below —
+the old `hyprctl dispatch <name> <args>` form does not work here).
 
 The `smart-*` variants are what the arrow keys are bound to: on a tiled window
 they move focus, on a floating one they snap. So tiling keeps its normal
@@ -47,8 +48,34 @@ def hyprctl_json(*args: str):
         return None
 
 
-def dispatch(*args: str) -> None:
-    subprocess.run(["hyprctl", "dispatch", *args], capture_output=True, check=False)
+def dispatch(lua: str) -> None:
+    """Run one dispatcher, written in Lua.
+
+    `hyprctl dispatch resizewindowpixel "exact 800 600,address:0x..."` — the
+    syntax every Hyprland guide on the internet still shows — does NOT work
+    with a Lua config provider. hyprctl wraps whatever you pass in
+    `hl.dispatch(...)` and hands it to Lua, so the old form arrives as
+    `hl.dispatch(resizewindowpixel exact 800 600,address:0x...)` and dies on a
+    syntax error before it ever reaches a dispatcher. That is not a theory:
+    every call in this file failed that way, silently, because the error goes
+    to hyprctl's stdout and nothing here was reading it. Snapping had never
+    worked once.
+
+    All of these act on the ACTIVE window, which is the same window main()
+    looked up — so no address is needed. `window = "address:..."` is accepted
+    too, but relying on it would be an unverified detail for no gain.
+    """
+    out = subprocess.run(["hyprctl", "dispatch", lua], capture_output=True,
+                         text=True, check=False).stdout
+    # hyprctl reports a bad dispatcher on STDOUT with exit status 0, so neither
+    # the return code nor stderr tells you anything. Not looking at this is
+    # what let the broken syntax above survive unnoticed.
+    if "error" in out.lower():
+        print(f"snap: {lua}\n  {out.strip()}", file=sys.stderr)
+
+
+def set_floating(on: bool) -> None:
+    dispatch('hl.dsp.window.float({ action = "%s" })' % ("on" if on else "off"))
 
 
 def usable_area(monitor: dict) -> tuple[int, int, int, int]:
@@ -128,11 +155,11 @@ def load_previous(addr: str):
         path.unlink(missing_ok=True)
 
 
-def apply(addr: str, x: int, y: int, w: int, h: int) -> None:
+def apply(x: int, y: int, w: int, h: int) -> None:
     # Resize first, then move: moving a window that is about to change size can
     # push it onto the wrong monitor on the way.
-    dispatch("resizewindowpixel", f"exact {w} {h},address:{addr}")
-    dispatch("movewindowpixel", f"exact {x} {y},address:{addr}")
+    dispatch(f"hl.dsp.window.resize({{ x = {w}, y = {h}, exact = true }})")
+    dispatch(f"hl.dsp.window.move({{ x = {x}, y = {y}, exact = true }})")
 
 
 def main(argv: list[str]) -> int:
@@ -151,8 +178,7 @@ def main(argv: list[str]) -> int:
     if action.startswith("smart-"):
         direction = action.split("-", 1)[1]
         if not floating:
-            dispatch("movefocus", {"left": "l", "right": "r",
-                                   "up": "u", "down": "d"}[direction])
+            dispatch('hl.dsp.focus({ direction = "%s" })' % direction)
             return 0
         action = {"left": "left", "right": "right",
                   "up": "maximize", "down": "restore"}[direction]
@@ -160,13 +186,13 @@ def main(argv: list[str]) -> int:
     if action == "restore":
         prev = load_previous(addr)
         if prev:
-            apply(addr, prev["at"][0], prev["at"][1], prev["size"][0], prev["size"][1])
+            apply(prev["at"][0], prev["at"][1], prev["size"][0], prev["size"][1])
             if not prev.get("floating"):
-                dispatch("settiled", f"address:{addr}")
+                set_floating(False)
         else:
             # Nothing remembered: give it back to the layout rather than
             # leaving it floating at an arbitrary size.
-            dispatch("settiled", f"address:{addr}")
+            set_floating(False)
         return 0
 
     monitors = hyprctl_json("monitors") or []
@@ -183,11 +209,11 @@ def main(argv: list[str]) -> int:
 
     if not floating:
         save_previous(addr, win)
-        dispatch("setfloating", f"address:{addr}")
+        set_floating(True)
     elif not (STATE / f"snap-{addr.replace('0x', '')}").exists():
         save_previous(addr, win)
 
-    apply(addr, *target)
+    apply(*target)
     return 0
 
 
