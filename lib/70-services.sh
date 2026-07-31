@@ -156,13 +156,22 @@ WantedBy=graphical-session.target'
     # applet and put two Bluetooth icons in the tray. Checked in a running VM
     # before writing this: pid 1202, parent Hyprland, from XDG autostart.
 
-    # No unit for nm-applet either, and it is no longer autostarted: its tray
-    # icon duplicated the bar's own network module. It was OUR settings.lua
-    # autostart list that ran it, not /etc/xdg/autostart — which is why an
-    # earlier attempt to mask it with a user-level Hidden=true entry did
-    # nothing at all, and why the process appeared under the compositor rather
-    # than under a systemd autostart unit. The evidence pointed at the right
-    # process for the wrong reason.
+    # nm-applet has to be actively stopped, not merely left out. Its tray icon
+    # duplicates the bar's own network module, so you get two network icons.
+    #
+    # It came from BOTH places, which is what made this confusing: our own
+    # settings.lua autostart list ran it, and Fedora ships
+    # /etc/xdg/autostart/nm-applet.desktop as well. Removing it from our list
+    # fixed half the problem and I reported the whole thing as done; the second
+    # icon was still there.
+    #
+    # Measured, not assumed: the surviving process runs as
+    # app-nm\x2dapplet@autostart.service — a unit systemd's xdg-autostart
+    # generator builds from that .desktop file, with systemd --user as its
+    # parent. So the fix is the one systemd offers for exactly this, rather
+    # than a Hidden=true entry whose handling depends on the generator.
+    run systemctl --user mask 'app-nm\x2dapplet@autostart.service' || true
+    run systemctl --user stop 'app-nm\x2dapplet@autostart.service' || true
 
     # --- the bar's popups ----------------------------------------------------
     # Resident, because starting Python and GTK4 per click was measured at 1.1

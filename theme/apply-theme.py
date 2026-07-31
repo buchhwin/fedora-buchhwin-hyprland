@@ -265,12 +265,22 @@ def apply_gsettings(ctx: dict) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Render all app configs from one Catppuccin palette.")
-    ap.add_argument("--flavour", default="mocha")
-    ap.add_argument("--accent", default="mauve")
+    # No default= here on purpose. With `default="mocha"` every caller that
+    # omitted the flag silently re-rendered mocha/mauve and overwrote
+    # theme.json — so pressing Apply on ANY settings page threw away the
+    # flavour the user had chosen. Falling back to settings.lua instead means
+    # "no argument" means "whatever is configured", which is what both the
+    # settings app and `bhctl restore` actually want.
+    ap.add_argument("--flavour")
+    ap.add_argument("--accent")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-reload", action="store_true",
                     help="Render files but do not signal running applications.")
     args = ap.parse_args()
+    if not args.flavour:
+        args.flavour = user_setting("theme.flavour", "mocha")
+    if not args.accent:
+        args.accent = user_setting("theme.accent", "mauve")
 
     palette = load_palette(args.flavour)
     ctx = build_context(palette, args.accent)

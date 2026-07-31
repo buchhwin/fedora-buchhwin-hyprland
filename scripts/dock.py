@@ -91,11 +91,17 @@ def build_config() -> dict:
 
     # Pinned launchers are ordinary custom modules; the dock does not need to
     # know what an application is, only how to start one.
+    #
+    # `format` used to be an empty string, which waybar renders as a module of
+    # zero width — so every pinned application was invisible and the whole
+    # feature looked like it did nothing. A custom module cannot show a .desktop
+    # icon (only wlr/taskbar can), so the label is the first letter of the
+    # application, which at least identifies it and is always available.
     modules = []
     for i, app in enumerate(pinned_apps()):
         name = f"custom/pin{i}"
         config[name] = {
-            "format": "",
+            "format": _pin_label(app),
             "tooltip-format": app,
             "on-click": f"gtk-launch {app}",
         }
@@ -109,6 +115,18 @@ def build_config() -> dict:
         # reserving space. Not the same as hiding, and labelled as such.
         config["exclusive"] = False
     return config
+
+
+def _pin_label(app: str) -> str:
+    """A short visible label for a pinned launcher.
+
+    Waybar's custom modules cannot draw a .desktop icon — only wlr/taskbar can,
+    and that shows running windows, not pins. So the label is the first letter
+    of the entry id, upper-cased: short enough not to crowd the dock, and it
+    identifies the entry. The full name is in the tooltip.
+    """
+    stem = app.rsplit(".", 1)[-1] if "." in app else app
+    return (stem[:1] or "?").upper()
 
 
 def _strip_comments(text: str) -> str:

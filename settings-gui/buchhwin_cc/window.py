@@ -7,6 +7,8 @@ written down.
 
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
 import threading
 from pathlib import Path
@@ -21,7 +23,11 @@ from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 from .pages import (about, accounts, apps, autostart, defaults, displays,  # noqa: E402
                     drives, input as input_page, keys, look, network, power,
                     sound, theme, wallpaper)
-from .store import Settings  # noqa: E402
+from .helpers import REPO, STATE  # noqa: E402
+# S is the settings.lua reader/writer, on sys.path courtesy of store.py. The
+# drives page reloads the file after drives.py has rewritten it, so it needs
+# the module itself and not the Settings wrapper's cached copy.
+from .store import S, Settings  # noqa: E402
 
 # The order of the sidebar. Look first because it is what people open the
 # window for; About last because nobody opens it for that.
@@ -35,6 +41,7 @@ class Window(Adw.ApplicationWindow):
         super().__init__(application=app, default_width=1000, default_height=720)
         self.s = settings
         self.set_title(_("Settings"))
+        self._page_titles: dict[str, str] = {}
 
         self.toasts = Adw.ToastOverlay()
         self.set_content(self.toasts)
@@ -67,6 +74,11 @@ class Window(Adw.ApplicationWindow):
 
         content_view = Adw.ToolbarView()
         header = Adw.HeaderBar()
+        # Its own title widget, or libadwaita falls back to the NavigationPage
+        # title — which was also "Settings", so the word stood twice side by
+        # side and neither half told you which page you were on.
+        self.content_title = Adw.WindowTitle(title=_("Settings"))
+        header.set_title_widget(self.content_title)
         apply_btn = Gtk.Button(label=_("Apply"))
         apply_btn.add_css_class("suggested-action")
         apply_btn.connect("clicked", self.on_apply)
@@ -99,6 +111,8 @@ class Window(Adw.ApplicationWindow):
 
         row = Gtk.ListBoxRow()
         row.set_name(name)
+        # Remembered so the content header can name the page that is showing.
+        self._page_titles[name] = title
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         box.set_margin_top(8)
         box.set_margin_bottom(8)
@@ -115,8 +129,11 @@ class Window(Adw.ApplicationWindow):
             self.sidebar.select_row(row)
 
     def _on_page_selected(self, _listbox, row):
-        if row is not None:
-            self.stack.set_visible_child_name(row.get_name())
+        if row is None:
+            return
+        name = row.get_name()
+        self.stack.set_visible_child_name(name)
+        self.content_title.set_title(self._page_titles.get(name, _("Settings")))
 
     def toast(self, text: str) -> None:
         self.toasts.add_toast(Adw.Toast(title=text, timeout=3))
