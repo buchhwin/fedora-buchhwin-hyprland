@@ -35,6 +35,9 @@ local tokens = {
     colorpicker   = SCRIPTS .. "/colorpicker.sh",
     togglegaps    = SCRIPTS .. "/toggle-gaps.sh",
     toggletheme   = "bhctl theme toggle",
+    snap          = "python3 " .. SCRIPTS .. "/snap.py",
+    floatws       = SCRIPTS .. "/toggle-floating-workspace.sh",
+    wallnext      = SCRIPTS .. "/wallpaper.sh next",
     reload        = SCRIPTS .. "/reload.sh",
     -- Root file manager: pkexec so the polkit agent asks properly, and a
     -- distinct window class so rules.lua can mark it red. Running a whole GUI
@@ -77,6 +80,10 @@ for _, b in ipairs(S.binds or {}) do
     elseif b.action == "dispatch" and dispatch[b.arg] then
         hl.bind(b.key, dispatch[b.arg]())
     end
+    -- action == "info" is intentional and does nothing here: those entries
+    -- exist so structural bindings (the snap keys below) still appear in the
+    -- cheat sheet and in the settings list. Binding them twice would be worse
+    -- than not binding them at all.
 end
 
 ------------------------------------------------------------------------------
@@ -87,15 +94,37 @@ end
 -- only be noise.
 ------------------------------------------------------------------------------
 
--- focus
-local dirs = { h = "left", j = "down", k = "up", l = "right",
-               left = "left", down = "down", up = "up", right = "right" }
-for key, dir in pairs(dirs) do
-    hl.bind("SUPER + " .. key,           hl.dsp.focus({ direction = dir }))
-    hl.bind("SUPER + SHIFT + " .. key,   hl.dsp.window.move({ direction = dir }))
+-- Focus with the letter keys — always, in every mode. This is the reliable
+-- pair, and the one that never changes meaning under you.
+local letters = { h = "left", j = "down", k = "up", l = "right" }
+for key, dir in pairs(letters) do
+    hl.bind("SUPER + " .. key,         hl.dsp.focus({ direction = dir }))
+    hl.bind("SUPER + SHIFT + " .. key, hl.dsp.window.move({ direction = dir }))
 end
 
--- resize, in a submap so you can hold and adjust rather than tap repeatedly
+-- The ARROW keys do double duty, and that is deliberate:
+--   tiled window    -> move focus, exactly as before
+--   floating window -> snap to half / maximize / restore, like Windows
+-- scripts/snap.py decides which, by looking at the window. So a tiling
+-- workspace keeps its behaviour and a floating one feels like Windows, with
+-- the same keys and nothing to remember.
+for _, dir in ipairs({ "left", "right", "up", "down" }) do
+    hl.bind("SUPER + " .. dir, hl.dsp.exec_cmd(tokens.snap .. " smart-" .. dir))
+end
+
+-- Quarters, and the plain halves without the smart detour.
+hl.bind("SUPER + SHIFT + Left",  hl.dsp.exec_cmd(tokens.snap .. " top-left"))
+hl.bind("SUPER + SHIFT + Right", hl.dsp.exec_cmd(tokens.snap .. " top-right"))
+hl.bind("SUPER + SHIFT + Down",  hl.dsp.exec_cmd(tokens.snap .. " bottom-left"))
+hl.bind("SUPER + SHIFT + Up",    hl.dsp.exec_cmd(tokens.snap .. " maximize"))
+hl.bind("SUPER + CTRL + Left",   hl.dsp.exec_cmd(tokens.snap .. " left"))
+hl.bind("SUPER + CTRL + Right",  hl.dsp.exec_cmd(tokens.snap .. " right"))
+
+-- Turn the current workspace into a floating one and back.
+hl.bind("SUPER + SHIFT + Space", hl.dsp.exec_cmd(tokens.floatws))
+
+-- Resizing lives on CTRL + the letter keys. CTRL + arrows is taken by the
+-- plain halves above.
 hl.bind("SUPER + CTRL + h", hl.dsp.window.resize({ x = -60, y = 0 }), { repeating = true })
 hl.bind("SUPER + CTRL + l", hl.dsp.window.resize({ x =  60, y = 0 }), { repeating = true })
 hl.bind("SUPER + CTRL + k", hl.dsp.window.resize({ x = 0, y = -60 }), { repeating = true })

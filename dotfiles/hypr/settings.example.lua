@@ -86,11 +86,15 @@ return {
     -- Programs the key bindings refer to
     -- =====================================================================
     programs = {
-        terminal     = "kitty",
-        browser      = "brave-origin",
-        file_manager = "nemo",
-        editor       = "code",
-        launcher     = "rofi -show drun",
+        terminal      = "kitty",
+        browser       = "brave-origin",
+        file_manager  = "nemo",
+        editor        = "code",
+        launcher      = "rofi -show drun",
+        calendar      = "gnome-calendar",
+        mail          = "evolution",
+        image_viewer  = "loupe",
+        music         = "flatpak run com.spotify.Client",
     },
 
     -- =====================================================================
@@ -143,6 +147,22 @@ return {
         { key = "SUPER + SHIFT + E",    action = "exec",     arg = "@rootfiles",    desc = "File manager as root" },
         { key = "SUPER + odiaeresis",   action = "dispatch", arg = "scratchpad",    desc = "Drop-down terminal" },
         { key = "SUPER + SHIFT + odiaeresis", action = "dispatch", arg = "to_scratchpad", desc = "Move window to scratchpad" },
+
+        -- Window snapping, Windows style. The arrow keys move focus on a tiled
+        -- window and snap on a floating one — scripts/snap.py decides, so the
+        -- same keys work in both modes. Listed here so they show up in the
+        -- cheat sheet and in the settings; the bindings themselves live in
+        -- binds.lua because they are structural.
+        { key = "SUPER + Left",         action = "info", arg = "@snap smart-left",  desc = "Focus left / snap to the left half" },
+        { key = "SUPER + Right",        action = "info", arg = "@snap smart-right", desc = "Focus right / snap to the right half" },
+        { key = "SUPER + Up",           action = "info", arg = "@snap smart-up",    desc = "Focus up / maximize" },
+        { key = "SUPER + Down",         action = "info", arg = "@snap smart-down",  desc = "Focus down / restore" },
+        { key = "SUPER + CTRL + Left",  action = "info", arg = "@snap left",        desc = "Always: left half" },
+        { key = "SUPER + CTRL + Right", action = "info", arg = "@snap right",       desc = "Always: right half" },
+        { key = "SUPER + SHIFT + Left", action = "info", arg = "@snap top-left",    desc = "Quarter: top left" },
+        { key = "SUPER + SHIFT + Right",action = "info", arg = "@snap top-right",   desc = "Quarter: top right" },
+        { key = "SUPER + SHIFT + Down", action = "info", arg = "@snap bottom-left", desc = "Quarter: bottom left" },
+        { key = "SUPER + SHIFT + Space",action = "info", arg = "@floatws",          desc = "Workspace: tiling / floating" },
     },
 
     -- =====================================================================
@@ -164,18 +184,67 @@ return {
 
     -- =====================================================================
     -- Monitors
+    --
     -- Empty means "detect everything automatically", which is right for a
     -- single screen and for the test VM.
+    --
+    -- Screens are identified by DESCRIPTION, not by DP-1 / HDMI-A-1. Connector
+    -- names change when you move a cable; the description does not. Get yours
+    -- with: hyprctl -j monitors | jq -r '.[].description'
+    --
+    -- { desc = "Dell Inc. DELL U2720Q", mode = "3840x2160@60",
+    --   position = "auto", scale = 1.5, primary = true, enabled = true }
     -- =====================================================================
     monitors = {},
 
+    -- Which workspaces live on which screen. Fixed assignment: 1-5 on the
+    -- primary, 6-10 on the second, so SUPER+3 always lands in the same place.
+    -- With one screen all ten are simply there.
+    workspace_layout = "fixed",   -- "fixed" | "dynamic"
+
     -- =====================================================================
     -- Wallpaper
+    --
+    -- "static"    one picture, chosen with the file picker
+    -- "slideshow" everything in a folder, in turn
     -- =====================================================================
     wallpaper = {
-        path         = "",          -- empty: pick the one matching the flavour
-        transition   = "grow",
-        follow_theme = true,
+        mode        = "slideshow",
+        path        = "",            -- static: the file
+        folder      = "",            -- slideshow: the folder (searched recursively)
+        interval    = 1800,          -- seconds between changes; 0 = only at login
+        order       = "random",      -- "random" | "alphabetical"
+        transition  = "grow",
+        per_monitor = false,         -- a different picture on each screen
+        follow_theme = true,         -- pick one matching the flavour when none is set
+    },
+
+    -- =====================================================================
+    -- Layout and window behaviour
+    --
+    -- Tiling is the default. Any workspace listed in floating_workspaces
+    -- behaves like Windows instead: windows float, drag freely, and snap
+    -- magnetically to edges and to each other.
+    -- =====================================================================
+    layout = {
+        default             = "dwindle",   -- "dwindle" | "master"
+        snap                = true,        -- magnetic snapping for floating windows
+        snap_window_gap     = 12,
+        snap_monitor_gap    = 12,
+        floating_workspaces = {},          -- e.g. { 5 }
+    },
+
+    -- =====================================================================
+    -- Drives — written by the settings GUI, read by scripts/drives.py
+    --
+    -- Cloud entries are rclone remotes; network entries are gvfs mounts.
+    -- Neither ever contains a password: those live in the keyring.
+    -- =====================================================================
+    drives = {
+        -- { kind = "cloud",   name = "GoogleDrive", provider = "drive",
+        --   mount = "~/Drives/GoogleDrive", automount = true },
+        -- { kind = "network", name = "NAS", type = "smb",
+        --   host = "nas.local", share = "data", user = "jan", automount = true },
     },
 
     -- =====================================================================

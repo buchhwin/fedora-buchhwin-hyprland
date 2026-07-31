@@ -1,0 +1,4 @@
+# Kubernetes. Off by default.
+#   ./install.sh --with k8s        or the "Extras" page in the settings
+k9s
+helm

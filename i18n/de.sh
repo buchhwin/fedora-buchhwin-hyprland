@@ -55,6 +55,8 @@ declare -gA MSG=(
     [info_gpu_none]="Kein eigener Grafiktreiber nötig"
 
     [sec_base]="Grundsystem"
+    [step_dnf_defaults]="Enter bedeutet bei dnf jetzt Ja"
+    [ok_dnf_defaults]="dnf fragt jetzt [Y/n] statt [y/N]"
     [step_update]="Installierte Pakete werden aktualisiert"
     [warn_update]="Die Systemaktualisierung lief nicht sauber durch"
     [step_shell]="Shell wird eingerichtet"

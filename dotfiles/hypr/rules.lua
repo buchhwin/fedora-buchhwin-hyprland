@@ -8,12 +8,46 @@
 
 local S = require("settings")
 local look = S.look or {}
+local layout = S.layout or {}
 
 ------------------------------------------------------------------------------
 -- Workspaces
 ------------------------------------------------------------------------------
 for _, ws in ipairs(S.workspaces or {}) do
     hl.workspace_rule({ workspace = tostring(ws.id), default_name = ws.name })
+end
+
+-- Fixed assignment across screens: 1-5 belong to the primary, 6-10 to the
+-- second. SUPER+3 therefore always lands on the same screen, which is the
+-- whole point — with a wandering assignment you never know where a window
+-- will appear.
+--
+-- The rules only bind if that screen exists, so a single-monitor machine keeps
+-- all ten workspaces without a special case anywhere in the code.
+if (S.workspace_layout or "fixed") == "fixed" then
+    local primary, secondary
+    for _, m in ipairs(S.monitors or {}) do
+        if m.enabled ~= false then
+            if m.primary and not primary then primary = "desc:" .. (m.desc or "")
+            elseif not secondary and m.desc then secondary = "desc:" .. m.desc end
+        end
+    end
+    if primary then
+        for i = 1, 5 do
+            hl.workspace_rule({ workspace = tostring(i), monitor = primary })
+        end
+    end
+    if secondary then
+        for i = 6, 10 do
+            hl.workspace_rule({ workspace = tostring(i), monitor = secondary })
+        end
+    end
+end
+
+-- Workspaces that behave like Windows: everything floats, and general.snap
+-- makes dragged windows click into place.
+for _, id in ipairs(layout.floating_workspaces or {}) do
+    hl.workspace_rule({ workspace = tostring(id), default_float = true })
 end
 
 -- Smart gaps: a single tiled window gets the whole screen. Nice on a laptop,

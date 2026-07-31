@@ -1,0 +1,6 @@
+# Packet capture and hardware monitoring with a GUI. Off by default —
+# wireshark alone pulls in a large Qt stack.
+#   ./install.sh --with analysis
+wireshark
+wireshark-cli
+nvtop

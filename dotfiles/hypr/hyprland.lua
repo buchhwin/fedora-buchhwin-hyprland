@@ -29,8 +29,9 @@ if not ok_theme then
           shadow_color = 0xee11111b, hex = {} }
 end
 
-local look = S.look or {}
-local prof = look.profile or "work"
+local look   = S.look or {}
+local layout = S.layout or {}
+local prof   = look.profile or "work"
 
 -- The showcase profile is the same configuration turned up, not a second
 -- config: slower animations, more blur, deeper shadows. One click in the GUI.
@@ -39,18 +40,27 @@ local showcase = (prof == "showcase")
 ------------------------------------------------------------------------------
 -- Monitors
 ------------------------------------------------------------------------------
-if S.monitors and #S.monitors > 0 then
-    for _, m in ipairs(S.monitors) do
+-- Screens are addressed by DESCRIPTION ("desc:Dell Inc. U2720Q"), not by
+-- DP-1/HDMI-A-1. Connector names change the moment a cable moves; the
+-- description does not — otherwise the whole arrangement is wrong after
+-- unplugging something once.
+--
+-- The catch-all entry stays LAST so any screen not listed still lights up
+-- instead of staying black.
+for _, m in ipairs(S.monitors or {}) do
+    if m.enabled == false then
+        hl.monitor({ output = m.desc and ("desc:" .. m.desc) or (m.output or ""),
+                     disabled = true })
+    else
         hl.monitor({
-            output   = m.output or "",
+            output   = m.desc and ("desc:" .. m.desc) or (m.output or ""),
             mode     = m.mode or "preferred",
             position = m.position or "auto",
             scale    = m.scale or "auto",
         })
     end
-else
-    hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
 end
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
 
 ------------------------------------------------------------------------------
 -- Environment
@@ -75,7 +85,21 @@ hl.config({
 
         resize_on_border = true,
         allow_tearing    = false,
-        layout           = "dwindle",
+        layout           = layout.default or "dwindle",
+
+        -- Magnetic snapping for FLOATING windows: drag one near an edge or
+        -- near another window and it clicks into place. This is what makes a
+        -- floating workspace feel deliberate rather than sloppy.
+        --
+        -- It is NOT Windows' "drag to the edge to fill half the screen" —
+        -- Hyprland has no such thing. That lives in scripts/snap.py, on the
+        -- arrow keys.
+        snap = {
+            enabled      = layout.snap ~= false,
+            window_gap   = layout.snap_window_gap or 12,
+            monitor_gap  = layout.snap_monitor_gap or 12,
+            respect_gaps = true,
+        },
     },
 
     decoration = {

@@ -36,6 +36,33 @@ gammastep
 xdg-desktop-portal
 xdg-desktop-portal-gtk
 
+# --- drives: cloud, network, phones -----------------------------------------
+# gvfs mounts as your user, with no root and no fstab entry. That is why
+# cifs-utils, nfs-utils and davfs2 are NOT here: they only add value for
+# system-wide mounts, which this setup deliberately does not do.
+gvfs
+gvfs-smb
+gvfs-nfs
+gvfs-fuse
+gvfs-mtp
+gvfs-goa
+fuse3
+
+# --- accounts and secrets ---------------------------------------------------
+# GOA supplies calendar, contacts and mail. It no longer supplies Google Drive
+# FILES — GNOME 50 removed that; see docs/DRIVES.md. Files come from rclone.
+gnome-online-accounts
+gnome-online-accounts-gtk
+gnome-keyring
+libsecret
+# seahorse (a GUI for the keyring) is deliberately left out: nothing here needs
+# it, and an app you open once a year is exactly the kind of weight to avoid.
+
+# --- calendar ---------------------------------------------------------------
+# evolution-data-server is the sync engine behind all of it; gnome-calendar and
+# the waybar module are just two views of the same data.
+gnome-calendar
+
 # --- theming ----------------------------------------------------------------
 qt6ct
 qt6-qtwayland

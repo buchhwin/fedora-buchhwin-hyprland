@@ -1,0 +1,4 @@
+# Database clients. Off by default.
+#   ./install.sh --with db
+postgresql
+mysql

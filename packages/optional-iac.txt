@@ -1,0 +1,6 @@
+# Infrastructure as code. Off by default.
+#   ./install.sh --with iac
+ansible
+python3-ansible-lint
+opentofu
+just

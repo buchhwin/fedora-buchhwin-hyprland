@@ -45,6 +45,16 @@ Every line below is editable in the settings GUI.
 | `SUPER + SHIFT + E` | File manager as root |
 | `SUPER + odiaeresis` | Drop-down terminal |
 | `SUPER + SHIFT + odiaeresis` | Move window to scratchpad |
+| `SUPER + Left` | Focus left / snap to the left half |
+| `SUPER + Right` | Focus right / snap to the right half |
+| `SUPER + Up` | Focus up / maximize |
+| `SUPER + Down` | Focus down / restore |
+| `SUPER + CTRL + Left` | Always: left half |
+| `SUPER + CTRL + Right` | Always: right half |
+| `SUPER + SHIFT + Left` | Quarter: top left |
+| `SUPER + SHIFT + Right` | Quarter: top right |
+| `SUPER + SHIFT + Down` | Quarter: bottom left |
+| `SUPER + SHIFT + Space` | Workspace: tiling / floating |
 
 ## Structural
 

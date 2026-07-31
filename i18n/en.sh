@@ -63,6 +63,8 @@ declare -gA MSG=(
 
     # --- base ----------------------------------------------------------------
     [sec_base]="Base system"
+    [step_dnf_defaults]="Making Enter mean yes for dnf"
+    [ok_dnf_defaults]="dnf now asks [Y/n] instead of [y/N]"
     [step_update]="Updating installed packages"
     [warn_update]="The system update did not finish cleanly"
     [step_shell]="Setting up the shell"

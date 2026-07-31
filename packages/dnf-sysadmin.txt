@@ -1,5 +1,10 @@
-# Sysadmin toolkit. This is core, not an extra — the desktop exists to do this
-# work. Skipped only with --minimal.
+# Sysadmin toolkit — the part that is always installed.
+#
+# Deliberately NOT everything a sysadmin might ever want. Kubernetes, Terraform
+# and database clients are real tools for some people and dead weight for
+# others, so they live in packages/optional-*.txt and are switched on in the
+# settings or with --with <group>. A desktop that installs 40 things you never
+# open is the thing we are trying not to build.
 
 # --- sessions and remote access ---------------------------------------------
 tmux
@@ -25,32 +30,20 @@ tcpdump
 iperf3
 bind-utils
 socat
-wireshark
-wireshark-cli
 iotop-c
-nvtop
 sysstat
 lsof
 strace
 
-# --- containers and virtualisation ------------------------------------------
+# --- containers -------------------------------------------------------------
+# podman only: it is what Fedora ships, runs rootless, and speaks the Docker
+# API. Installing both podman and docker side by side causes more trouble than
+# it solves.
 podman
 podman-compose
-virt-manager
-k9s
-helm
 
-# --- automation and code ----------------------------------------------------
-ansible
-python3-ansible-lint
-opentofu
+# --- code -------------------------------------------------------------------
 git-delta
 gh
 ShellCheck
 direnv
-just
-
-# --- databases and backup ---------------------------------------------------
-postgresql
-mysql
-restic
