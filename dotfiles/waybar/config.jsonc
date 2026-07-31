@@ -193,8 +193,13 @@
     // undiscovered while it was also broken.
     "custom/settings": {
         "format": "󰒓",
-        "tooltip-format": "Settings",
-        "on-click": "systemd-run --user --scope -q sh -c 'buchhwin-control-center'"
+        "tooltip-format": "Quick settings — right click opens the full window",
+        // Left click opens the small panel; the full window is a button inside
+        // it, and on the right button here. Six of the things people reach for
+        // most are switches, and a switch does not deserve a sixteen-page
+        // application.
+        "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel quick",
+        "on-click-right": "systemd-run --user --scope -q sh -c 'buchhwin-control-center'"
     },
 
     "custom/notifications": {

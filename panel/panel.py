@@ -35,14 +35,18 @@ from gi.repository import Adw, Gio, GLib  # noqa: E402
 
 from popup import FIFO, load_css  # noqa: E402
 
-NAMES = ("calendar", "audio", "network")
-USAGE = "usage: panel.py --daemon | calendar|audio|network"
+NAMES = ("calendar", "audio", "network", "quick")
+USAGE = "usage: panel.py --daemon | calendar|audio|network|quick"
 
 
 def _window_class(name: str):
     if name == "calendar":
         from calendar_popup import CalendarPopup
         return CalendarPopup
+    if name == "quick":
+        from quick_popup import QuickPopup
+
+        return QuickPopup
     if name == "audio":
         from audio_popup import AudioPopup
         return AudioPopup
