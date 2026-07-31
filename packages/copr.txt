@@ -20,7 +20,10 @@
 #     libdisplay-info.so.2, while Fedora 44 ships libdisplay-info 0.3.0 which
 #     provides .so.3. The repository was never rebuilt for F44.
 #
-# sachesi/hyprland has 0.56.1 for fedora-44-x86_64 with a matching aquamarine
+# sachesi/hyprland carries current Hyprland for fedora-44-x86_64 with a matching
+# aquamarine. (At the time of writing it offered 0.55.4, 0.56.0 and 0.56.1; this
+# project is developed and verified against 0.55.4, and nothing here pins a
+# version, so a fresh install takes whatever is newest.)
 # 0.14, hyprutils 0.14, hyprlock 0.9.6, hypridle 0.1.8, hyprpicker 0.4.7 and
 # hyprtoolkit 0.5.4, and it resolves cleanly.
 #

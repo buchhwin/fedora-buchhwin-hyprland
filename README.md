@@ -2,14 +2,14 @@
 
 # fedora-buchhwin-hyprland
 
-**A Catppuccin Hyprland desktop for Fedora, in one command.**
+**A themed Hyprland desktop for Fedora, in one command.**
 
 Built to be looked at *and* worked in — a sysadmin's daily driver that happens
 to be worth posting.
 
 [![Fedora 44](https://img.shields.io/badge/Fedora-44-51A2DA?style=for-the-badge&logo=fedora&logoColor=white&labelColor=313244)](https://fedoraproject.org/)
-[![Hyprland 0.56](https://img.shields.io/badge/Hyprland-0.56-58E1FF?style=for-the-badge&labelColor=313244)](https://hypr.land/)
-[![Catppuccin](https://img.shields.io/badge/Catppuccin-Mocha-CBA6F7?style=for-the-badge&labelColor=313244)](https://catppuccin.com/)
+[![Hyprland 0.55+](https://img.shields.io/badge/Hyprland-0.55%2B-58E1FF?style=for-the-badge&labelColor=313244)](https://hypr.land/)
+[![9 palettes](https://img.shields.io/badge/palettes-9-CBA6F7?style=for-the-badge&labelColor=313244)](theme/palettes/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-A6E3A1?style=for-the-badge&labelColor=313244)](LICENSE)
 
 </div>
@@ -67,13 +67,13 @@ installs git if missing, clones this repository to
 
 | | |
 |---|---|
-| **Compositor** | Hyprland 0.55 — **Lua** config, the format since 0.55 |
+| **Compositor** | Hyprland 0.55+ — **Lua** config, the format since 0.55 |
 | **Bar** | Waybar, floating island, module pills |
 | **Menus** | rofi 2.0 — launcher, windows, clipboard, emoji, wallpaper, shortcuts |
 | **Notifications** | SwayNC with a control centre panel |
 | **Terminal** | kitty |
 | **Files** | Nemo |
-| **Login** | SDDM, Catppuccin greeter |
+| **Login** | SDDM, themed, with the desktop's own wallpaper behind it |
 | **Lock / idle** | hyprlock + hypridle |
 | **Wallpaper** | swww, with transitions |
 | **Shell** | zsh + starship + atuin |
@@ -199,6 +199,13 @@ file is read, changed and written back whole. `bhctl update` never touches it.
 Deutsch: [docs/de/](docs/de/)
 
 ## Notes worth knowing before you start
+
+**Which Hyprland you get.** The config is Lua, which Hyprland has used since
+0.55 — every dotfile collection you find online is still the old `hyprlang`
+syntax and will not load here. Everything in this repository is developed and
+verified against **0.55.4**; the COPR currently also carries 0.56.1, and a fresh
+install takes whatever is newest. If a Lua API changes under you, `bhctl doctor`
+and `hyprctl configerrors` are the first two things to run.
 
 - **Hyprland's config is Lua now.** Since 0.55 hyprlang is deprecated. Almost
   every dotfile collection you will find is still the old format and will not
