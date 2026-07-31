@@ -27,6 +27,7 @@ contain literal braces without being mangled.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
@@ -133,11 +134,9 @@ def reload_apps(changed: set[str]) -> None:
         return shutil.which(cmd) is not None
 
     def run(*cmd: str) -> None:
-        try:
+        with contextlib.suppress(OSError):
             subprocess.run(cmd, check=False,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except OSError:
-            pass
 
     if "hypr" in changed and have("hyprctl"):
         run("hyprctl", "reload")

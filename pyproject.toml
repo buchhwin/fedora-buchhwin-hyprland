@@ -11,7 +11,11 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF", "PL"]
+# Deliberately narrow. The point of a linter here is to catch mistakes, not to
+# have an opinion about every line: E/F/W/I/UP/B/C4/RUF find real problems,
+# while the PL* family mostly counts things (returns, arguments, branches) and
+# SIM rewrites readable code into denser code.
+select = ["E", "F", "W", "I", "UP", "B", "C4", "RUF"]
 
 ignore = [
     # Times shown to a human must be in THAT human's timezone. Every
@@ -32,10 +36,9 @@ ignore = [
     # Long explanatory comments are the point of this codebase.
     "E501",
 
-    # Complexity limits fight the page-building functions in the settings GUI,
-    # which are long because they are lists of widgets, not because they are
-    # complicated.
-    "PLR0912", "PLR0913", "PLR0915",
+    # gi.require_version() MUST run before the import it guards, so those
+    # imports cannot move to the top of the file.
+    "PLC0415",
 ]
 
 [tool.ruff.lint.per-file-ignores]

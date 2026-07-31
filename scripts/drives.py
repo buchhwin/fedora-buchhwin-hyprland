@@ -190,7 +190,7 @@ def store_password(d: dict, password: str) -> bool:
     attributes, so mounting never prompts again."""
     if shutil.which("secret-tool") is None:
         return False
-    proc = subprocess.run(  # noqa: S603
+    proc = subprocess.run(
         ["secret-tool", "store", "--label", f"Drive: {d['name']}",
          "xdg:schema", "org.gnome.keyring.NetworkPassword",
          "protocol", NETWORK_SCHEMES.get(d.get("type", "smb"), "smb"),
@@ -206,12 +206,10 @@ def store_password(d: dict, password: str) -> bool:
 def state_of(d: dict) -> str:
     name = safe_name(d["name"])
     if d["kind"] == "cloud":
-        target = MOUNT_ROOT / name
-        if target.is_mount():
+        if (MOUNT_ROOT / name).is_mount():
             return "mounted"
-    else:
-        if run("gio", "info", network_uri(d)).returncode == 0:
-            return "mounted"
+    elif run("gio", "info", network_uri(d)).returncode == 0:
+        return "mounted"
     unit = unit_name(d["name"])
     active = systemctl("is-active", unit).stdout.strip()
     return {"active": "mounted", "activating": "connecting"}.get(active, active or "unknown")
@@ -408,12 +406,14 @@ def main() -> int:
     sub.add_parser("sync").set_defaults(fn=cmd_sync)
     sub.add_parser("waybar").set_defaults(fn=cmd_waybar)
 
-    p = sub.add_parser("add-cloud"); p.set_defaults(fn=cmd_add_cloud)
+    p = sub.add_parser("add-cloud")
+    p.set_defaults(fn=cmd_add_cloud)
     p.add_argument("--provider", required=True, choices=sorted(CLOUD_PROVIDERS))
     p.add_argument("--name")
     p.add_argument("--no-automount", action="store_true")
 
-    p = sub.add_parser("add-network"); p.set_defaults(fn=cmd_add_network)
+    p = sub.add_parser("add-network")
+    p.set_defaults(fn=cmd_add_network)
     p.add_argument("--type", default="smb", choices=sorted(NETWORK_SCHEMES))
     p.add_argument("--host", required=True)
     p.add_argument("--share", default="")

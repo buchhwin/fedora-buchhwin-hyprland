@@ -41,7 +41,7 @@ def rgb(hex6: str) -> tuple[int, int, int]:
 
 
 def mix(a, b, t: float):
-    return tuple(round(x + (y - x) * t) for x, y in zip(a, b))
+    return tuple(round(x + (y - x) * t) for x, y in zip(a, b, strict=True))
 
 
 def gradient(colors: dict, accent: str, w: int, h: int) -> Image.Image:

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 WINDOW_DAYS = 7
 SOON_MINUTES = 15
@@ -58,7 +58,7 @@ def fetch_events(days: int = WINDOW_DAYS) -> tuple[list[dict], str | None]:
     if not sources:
         return [], "no calendars configured"
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     end = now + timedelta(days=days)
     start_ts, end_ts = int(now.timestamp()), int(end.timestamp())
 
@@ -106,7 +106,7 @@ def fetch_events(days: int = WINDOW_DAYS) -> tuple[list[dict], str | None]:
 
 
 def _ical(dt: datetime) -> str:
-    return dt.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return dt.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _fmt_time(ts: int, all_day: bool) -> str:
