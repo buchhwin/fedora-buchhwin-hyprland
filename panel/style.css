@@ -204,3 +204,29 @@
 }
 
 .popup-button:hover { background-color: @surface1; }
+
+/* --- on-screen display -----------------------------------------------------
+ * Feedback, not a menu: it sits bottom-centre over everything and leaves by
+ * itself. Wider padding and a bigger radius than the popups, because it is a
+ * pill rather than a panel.
+ */
+.osd .popup-body {
+    padding: 14px 20px;
+}
+
+.osd-bar trough {
+    min-height: 8px;
+    border-radius: 4px;
+    background-color: @surface1;
+}
+
+.osd-bar progress {
+    min-height: 8px;
+    border-radius: 4px;
+    background-color: @accent;
+}
+
+.osd-value {
+    color: @subtext1;
+    min-width: 46px;
+}

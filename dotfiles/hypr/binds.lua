@@ -170,12 +170,24 @@ hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true })
 -- often want to mute something in a hurry.
 ------------------------------------------------------------------------------
 local mk = { locked = true, repeating = true }
-hl.bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"), mk)
-hl.bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), mk)
-hl.bind("XF86AudioMute",         hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
-hl.bind("XF86AudioMicMute",      hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
-hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"), mk)
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"), mk)
+
+-- Each media key changes the value AND shows the on-screen bar. Without the
+-- second half, pressing a volume key produces no visible response at all and
+-- the only way to find out whether it worked is to look at the bar.
+--
+-- One shell line rather than two binds: the display has to come after the
+-- change, or it reads the old value and shows the wrong number.
+local PANEL = SCRIPTS:gsub("/scripts$", "/panel") .. "/buchhwin-panel"
+local function with_osd(command, kind)
+    return hl.dsp.exec_cmd(command .. " && " .. PANEL .. " osd-" .. kind)
+end
+
+hl.bind("XF86AudioRaiseVolume",  with_osd("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+", "volume"), mk)
+hl.bind("XF86AudioLowerVolume",  with_osd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-", "volume"), mk)
+hl.bind("XF86AudioMute",         with_osd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", "volume"), { locked = true })
+hl.bind("XF86AudioMicMute",      with_osd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle", "mic"), { locked = true })
+hl.bind("XF86MonBrightnessUp",   with_osd("brightnessctl -e4 -n2 set 5%+", "brightness"), mk)
+hl.bind("XF86MonBrightnessDown", with_osd("brightnessctl -e4 -n2 set 5%-", "brightness"), mk)
 hl.bind("XF86AudioNext",         hl.dsp.exec_cmd("playerctl next"), { locked = true })
 hl.bind("XF86AudioPrev",         hl.dsp.exec_cmd("playerctl previous"), { locked = true })
 hl.bind("XF86AudioPlay",         hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })

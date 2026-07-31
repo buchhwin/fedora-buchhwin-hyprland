@@ -6,6 +6,7 @@
 #     buchhwin-panel audio       volume, mute, output device
 #     buchhwin-panel network     connection status and Wi-Fi
 #     buchhwin-panel quick       quick settings (the gear in the bar)
+#     buchhwin-panel osd-volume  the on-screen bar, on the media keys
 #     buchhwin-panel --daemon    the resident process (a user unit runs this)
 #
 # In the normal case this writes one line into a named pipe and exits, which
@@ -22,8 +23,8 @@
 set -euo pipefail
 
 case "${1:-}" in
-    calendar|audio|network|quick|--daemon) ;;
-    *) echo "usage: buchhwin-panel calendar|audio|network|quick|--daemon" >&2; exit 2 ;;
+    calendar|audio|network|quick|osd-volume|osd-brightness|osd-mic|--daemon) ;;
+    *) echo "usage: buchhwin-panel calendar|audio|network|quick|osd-volume|osd-brightness|osd-mic|--daemon" >&2; exit 2 ;;
 esac
 
 HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"

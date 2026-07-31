@@ -35,8 +35,10 @@ from gi.repository import Adw, Gio, GLib  # noqa: E402
 
 from popup import FIFO, load_css  # noqa: E402
 
-NAMES = ("calendar", "audio", "network", "quick")
-USAGE = "usage: panel.py --daemon | calendar|audio|network|quick"
+NAMES = ("calendar", "audio", "network", "quick",
+         "osd-volume", "osd-brightness", "osd-mic")
+USAGE = ("usage: panel.py --daemon | calendar|audio|network|quick"
+         "|osd-volume|osd-brightness|osd-mic")
 
 
 def _window_class(name: str):
@@ -47,6 +49,10 @@ def _window_class(name: str):
         from quick_popup import QuickPopup
 
         return QuickPopup
+    if name.startswith("osd"):
+        from osd_popup import OsdPopup
+
+        return OsdPopup
     if name == "audio":
         from audio_popup import AudioPopup
         return AudioPopup
@@ -84,9 +90,13 @@ class Panel(Adw.Application):
                 print(f"panel: could not build {name}: {exc}", file=sys.stderr)
 
     def _get(self, name: str):
-        if name not in self._windows:
-            self._windows[name] = _window_class(name)(self)
-        return self._windows[name]
+        # The three osd-* names share one window: it is the same bar showing a
+        # different value, and three of them could otherwise be on screen at
+        # once, stacked on top of each other.
+        key = "osd" if name.startswith("osd") else name
+        if key not in self._windows:
+            self._windows[key] = _window_class(name)(self)
+        return self._windows[key]
 
     # -- the toggle channel ------------------------------------------------
 
@@ -120,11 +130,19 @@ class Panel(Adw.Application):
 
     def _apply(self, action: str, name: str) -> bool:
         window = self._get(name)
+
+        # The OSD is feedback, not a menu: it never closes anything, and
+        # nothing closes it. Turning the volume down while the calendar is open
+        # should not shut the calendar.
+        if name.startswith("osd"):
+            window.show_for(name.split("-", 1)[1] if "-" in name else "volume")
+            return False
+
         # Opening one popup closes the others. Two panels open at once is not
         # a thing any desktop does, and the catchers would fight over clicks.
         if action in ("toggle", "show"):
             for other, w in self._windows.items():
-                if other != name:
+                if other != name and other != "osd":
                     w.hide()
         getattr(window, action)()
         return False
