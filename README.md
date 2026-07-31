@@ -67,7 +67,7 @@ installs git if missing, clones this repository to
 
 | | |
 |---|---|
-| **Compositor** | Hyprland 0.56 — **Lua** config, the format since 0.55 |
+| **Compositor** | Hyprland 0.55 — **Lua** config, the format since 0.55 |
 | **Bar** | Waybar, floating island, module pills |
 | **Menus** | rofi 2.0 — launcher, windows, clipboard, emoji, wallpaper, shortcuts |
 | **Notifications** | SwayNC with a control centre panel |
@@ -77,15 +77,26 @@ installs git if missing, clones this repository to
 | **Lock / idle** | hyprlock + hypridle |
 | **Wallpaper** | swww, with transitions |
 | **Shell** | zsh + starship + atuin |
-| **Settings** | a GTK4 app — keys, borders, theme, wallpaper, drives, autostart |
+| **Settings** | a GTK4 app, sixteen pages with a search across all of them |
+| **Panel popups** | calendar with appointments and weather, sound with per-app volume, network, Bluetooth, media, quick settings behind the gear |
+| **Window buttons** | minimize, maximize, close — and minimize really works: a hidden workspace the dock lists |
+| **Overview** | `SUPER+Tab` — everything open, grouped by workspace |
+| **VPN** | WireGuard through NetworkManager: import a .conf, switch it in the bar |
+| **Updates** | counted in the bar, installed from the settings — packages, flatpaks and this project |
 | **Drives** | Google Drive / OneDrive via rclone, SMB/NFS via gvfs — in the file manager sidebar like a mapped drive |
 | **Calendar** | GOA + evolution-data-server → GNOME Calendar, Evolution **and** the bar |
 | **Firewall** | ufw, on by default |
 
-Everything is Catppuccin, and that is not a figure of speech: GTK3, GTK4,
-Qt, SDDM, the lock screen, the power menu, notifications, the terminal, the
-file manager, icons, **the cursor**, `btop` and `fastfetch` all come from the
-same palette file.
+**Nine palettes in four families** — Catppuccin (Mocha, Macchiato, Frappé,
+Latte), Nord, Tokyo Night, Gruvbox, Dracula, Rosé Pine — or one derived from
+your wallpaper, optionally following every change.
+
+And "everything is themed" is not a figure of speech: **twenty-six generated
+files** come from the one palette file. Hyprland, the lock screen, the bar, the
+popups, notifications, the launcher, the terminal, the power menu, GTK3, GTK4,
+Qt, icons, **the cursor**, `btop`, `starship`, `fastfetch`, `fzf`, `bat`, `eza`,
+`lazygit`, `zellij`, `tmux`, `git-delta`, `atuin`, VS Code and Brave. The
+wallpaper and the login screen follow too.
 
 ## Switching the whole desktop in one command
 
