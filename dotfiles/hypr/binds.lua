@@ -43,6 +43,9 @@ local tokens = {
     -- calculator. rofi already ships the modes; scripts/search.sh only wires
     -- them together and adds a plocate-backed file mode.
     search        = SCRIPTS .. "/search.sh",
+    -- Browse applications by category, for when you know what KIND of program
+    -- you want but not its name.
+    appcategories = SCRIPTS .. "/app-categories.sh",
     -- Root file manager: pkexec so the polkit agent asks properly, and a
     -- distinct window class so rules.lua can mark it red. Running a whole GUI
     -- as root is a blunt instrument, but it is the honest one for the job.

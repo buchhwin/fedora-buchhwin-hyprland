@@ -12,6 +12,16 @@
 
 configuration {
     modes: "drun,run,window,filebrowser";
+
+    /* Categories, so a long list can be narrowed to the kind of thing you are
+     * after. Only the ones that actually appear on a Fedora desktop are
+     * listed; offering empty categories is worse than offering none.
+     *
+     * Deliberately NOT set as a filter here — that would HIDE everything
+     * outside the category, which is the opposite of what a launcher is for.
+     * Alt+1..8 switches, and scripts/search.sh (ALT+Space) searches across
+     * everything regardless. */
+    drun-show-actions: true;
     font: "Inter 12";
 
     drun-display-format: "{name}";

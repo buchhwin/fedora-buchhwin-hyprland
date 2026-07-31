@@ -112,6 +112,47 @@ def _split_escaped(line: str) -> list[str]:
     return parts
 
 
+def radio_state() -> dict:
+    """Wi-Fi and WWAN radio state. "missing" means no such hardware."""
+    rc, out = nmcli("-t", "radio")
+    if rc != 0:
+        return {}
+    parts = out.split(":")
+    keys = ("wifi_hw", "wifi", "wwan_hw", "wwan")
+    return dict(zip(keys, parts)) if len(parts) >= 4 else {}
+
+
+def ip_details(device: str) -> list[str]:
+    """Address, gateway and DNS, in the words a person would use."""
+    if not device:
+        return []
+    rc, out = nmcli("-t", "-f", "IP4.ADDRESS,IP4.GATEWAY,IP4.DNS",
+                    "device", "show", device)
+    if rc != 0:
+        return []
+    labels = {"IP4.ADDRESS[1]": "Address", "IP4.GATEWAY": "Gateway",
+              "IP4.DNS[1]": "DNS", "IP4.DNS[2]": "DNS"}
+    rows = []
+    for line in out.splitlines():
+        key, _, value = line.partition(":")
+        if value and value != "--" and key in labels:
+            rows.append(f"{labels[key]}: {value}")
+    return rows
+
+
+def saved_connections() -> list[tuple[str, str]]:
+    """(name, type) of stored Wi-Fi profiles."""
+    rc, out = nmcli("-t", "-f", "NAME,TYPE", "connection", "show")
+    if rc != 0:
+        return []
+    result = []
+    for line in out.splitlines():
+        parts = _split_escaped(line)
+        if len(parts) >= 2 and parts[1] in ("802-11-wireless", "wifi"):
+            result.append((parts[0], parts[1]))
+    return result
+
+
 def signal_icon(strength: int) -> str:
     if strength >= 75:
         return "network-wireless-signal-excellent-symbolic"
@@ -164,11 +205,47 @@ class NetworkPopup(PanelWindow):
         status.append(text)
         self._box.append(status)
 
-        networks = wifi_networks()
-        if networks:
+        # Addresses, in the words a person would use rather than nmcli's keys.
+        for line in ip_details(device):
+            row = Gtk.Label(label=line, xalign=0)
+            row.add_css_class("popup-subtle")
+            self._box.append(row)
+
+        radio = radio_state()
+        has_wifi = radio.get("wifi_hw") not in (None, "missing")
+
+        if has_wifi:
             self._box.append(Gtk.Separator())
-            self._box.append(heading("Wi-Fi networks"))
-            self._box.append(self._network_list(networks))
+
+            toggle = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            toggle.append(heading("Wi-Fi"))
+            spacer = Gtk.Box()
+            spacer.set_hexpand(True)
+            toggle.append(spacer)
+            switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+            switch.set_active(radio.get("wifi") == "enabled")
+            switch.connect("notify::active", self._on_wifi_toggle)
+            toggle.append(switch)
+            self._box.append(toggle)
+
+            if radio.get("wifi") == "enabled":
+                networks = wifi_networks()
+                if networks:
+                    self._box.append(self._network_list(networks))
+                else:
+                    self._box.append(note("Looking for networks…"))
+
+                if kind == "wifi":
+                    disconnect = Gtk.Button(label="Disconnect")
+                    disconnect.add_css_class("popup-action")
+                    disconnect.connect("clicked", self._on_disconnect, device)
+                    self._box.append(disconnect)
+
+                saved = saved_connections()
+                if saved:
+                    self._box.append(Gtk.Separator())
+                    self._box.append(heading("Saved networks"))
+                    self._box.append(self._saved_list(saved))
         elif kind == "ethernet":
             # A desktop on a cable has no Wi-Fi radio; saying "no networks
             # found" there would read like a fault.
@@ -181,6 +258,57 @@ class NetworkPopup(PanelWindow):
         settings.connect("clicked",
                          lambda _b: launch(["nm-connection-editor"], self))
         self._box.append(settings)
+
+    def _saved_list(self, saved) -> Gtk.Widget:
+        listbox = Gtk.ListBox()
+        listbox.add_css_class("popup-list")
+        listbox.set_selection_mode(Gtk.SelectionMode.NONE)
+        for name, _kind in saved:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            label = Gtk.Label(label=name, xalign=0)
+            label.set_ellipsize(3)
+            label.set_hexpand(True)
+            row.append(label)
+            forget = Gtk.Button(label="Forget", valign=Gtk.Align.CENTER)
+            forget.connect("clicked", self._on_forget, name)
+            row.append(forget)
+            wrapper = Gtk.Box()
+            wrapper.add_css_class("popup-row")
+            wrapper.append(row)
+            row.set_hexpand(True)
+            listbox.append(wrapper)
+        return listbox
+
+    def _on_wifi_toggle(self, switch, _param) -> None:
+        nmcli("radio", "wifi", "on" if switch.get_active() else "off")
+        # Turning the radio on takes a moment to produce a scan; rebuilding at
+        # once would show an empty list and look broken.
+        GLib.timeout_add_seconds(2, lambda: (self._populate(), False)[1])
+
+    def _on_disconnect(self, _button, device: str) -> None:
+        nmcli("device", "disconnect", device, timeout=20)
+        self._populate()
+
+    def _on_forget(self, _button, name: str) -> None:
+        # Deleting a saved network is not undoable and a mis-click on a work
+        # network is expensive, so it asks first.
+        dialog = Gtk.AlertDialog()
+        dialog.set_message(f"Forget “{name}”?")
+        dialog.set_detail("The saved password will be deleted. "
+                          "You will need it again to reconnect.")
+        dialog.set_buttons(["Cancel", "Forget"])
+        dialog.set_cancel_button(0)
+        dialog.set_default_button(0)
+
+        def answered(d, result):
+            try:
+                if d.choose_finish(result) == 1:
+                    nmcli("connection", "delete", name, timeout=20)
+                    self._populate()
+            except GLib.Error:
+                pass
+
+        dialog.choose(self.window, None, answered)
 
     def _network_list(self, networks: list[dict]) -> Gtk.Widget:
         scroller = Gtk.ScrolledWindow()

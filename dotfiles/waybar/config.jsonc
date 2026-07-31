@@ -37,8 +37,9 @@
     // process was in cgroup buchhwin-bar.service.
     "custom/logo": {
         "format": "󰣛",
-        "tooltip-format": "Applications",
-        "on-click": "systemd-run --user --scope -q sh -c 'rofi -show drun'"
+        "tooltip-format": "Applications — right click for categories",
+        "on-click": "systemd-run --user --scope -q sh -c 'rofi -show drun'",
+        "on-click-right": "systemd-run --user --scope -q sh -c '~/.local/share/fedora-buchhwin-hyprland/scripts/app-categories.sh'"
     },
 
     "hyprland/workspaces": {

@@ -129,6 +129,7 @@ return {
         -- launcher and menus
         { key = "SUPER + Space",        action = "exec",     arg = "@launcher",     desc = "Application launcher" },
         { key = "SUPER + R",            action = "exec",     arg = "@launcher",     desc = "Application launcher" },
+        { key = "SUPER + A",            action = "exec",     arg = "@appcategories",desc = "Applications by category" },
         { key = "SUPER + Tab",          action = "exec",     arg = "@windowmenu",   desc = "Window switcher" },
         { key = "SUPER + W",            action = "exec",     arg = "@wallpapermenu",desc = "Wallpaper picker" },
         { key = "SUPER + period",       action = "exec",     arg = "@emojimenu",    desc = "Emoji picker" },

@@ -483,6 +483,11 @@ class Window(Adw.ApplicationWindow):
         spin_row(g, _("Icon size"), _("Pixels"), 16, 64, 4,
                  self.s.get("dock.icon_size", 32),
                  lambda v: self.s.set("dock.icon_size", int(v)))
+        self._dock_pins = group(p, _("Pinned applications"),
+                                _("Always in the dock, whether they are running "
+                                  "or not."))
+        self._rebuild_pins()
+
         switch_row(g, _("Let windows tile underneath"),
                    _("Waybar has no true autohide. This drops the reserved "
                      "space so the dock floats over your windows instead of "
@@ -498,6 +503,82 @@ class Window(Adw.ApplicationWindow):
                   lambda v: self.s.set("look.profile", v))
 
         self.add_page(p, "look", _("Look"), "preferences-desktop-appearance-symbolic")
+
+    # -- dock pins -----------------------------------------------------------
+
+    def _rebuild_pins(self):
+        g = self._dock_pins
+        while (child := g.get_first_child()) is not None:
+            g.remove(child)
+
+        pinned = self.s.get("dock.pinned", []) or []
+        for app in pinned:
+            row = Adw.ActionRow(title=app)
+            remove = Gtk.Button(icon_name="list-remove-symbolic",
+                                valign=Gtk.Align.CENTER)
+            remove.connect("clicked", self._on_unpin, app)
+            row.add_suffix(remove)
+            g.add(row)
+
+        add = Adw.ActionRow(title=_("Add an application"))
+        button = Gtk.Button(icon_name="list-add-symbolic", valign=Gtk.Align.CENTER)
+        button.connect("clicked", self._on_pin_add)
+        add.add_suffix(button)
+        g.add(add)
+
+    def _installed_apps(self) -> list[str]:
+        """Desktop entry ids that a person would actually launch.
+
+        NoDisplay entries are skipped for the same reason the launcher skips
+        them: they are handlers, not applications.
+        """
+        found: set[str] = set()
+        for directory in (Path("/usr/share/applications"),
+                          Path("/usr/local/share/applications"),
+                          Path.home() / ".local/share/applications",
+                          Path("/var/lib/flatpak/exports/share/applications")):
+            if not directory.is_dir():
+                continue
+            for entry in directory.glob("*.desktop"):
+                try:
+                    if "NoDisplay=true" in entry.read_text(errors="replace"):
+                        continue
+                except OSError:
+                    continue
+                found.add(entry.stem)
+        return sorted(found)
+
+    def _on_pin_add(self, _button):
+        apps = [a for a in self._installed_apps()
+                if a not in (self.s.get("dock.pinned", []) or [])]
+        if not apps:
+            self.toast(_("Everything installed is already pinned"))
+            return
+
+        dialog = Adw.AlertDialog(heading=_("Add to the dock"))
+        combo = Adw.ComboRow(title=_("Application"),
+                             model=Gtk.StringList.new(apps))
+        listbox = Adw.PreferencesGroup()
+        listbox.add(combo)
+        dialog.set_extra_child(listbox)
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("add", _("Add"))
+        dialog.set_default_response("add")
+
+        def answered(_d, response):
+            if response == "add":
+                pinned = list(self.s.get("dock.pinned", []) or [])
+                pinned.append(apps[combo.get_selected()])
+                self.s.set("dock.pinned", pinned)
+                self._rebuild_pins()
+
+        dialog.connect("response", answered)
+        dialog.present(self)
+
+    def _on_unpin(self, _button, app: str):
+        pinned = [a for a in (self.s.get("dock.pinned", []) or []) if a != app]
+        self.s.set("dock.pinned", pinned)
+        self._rebuild_pins()
 
     def _page_theme(self):
         p = page(_("Theme"), "applications-graphics-symbolic")
