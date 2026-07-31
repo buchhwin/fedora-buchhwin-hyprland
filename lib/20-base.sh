@@ -52,7 +52,15 @@ phase_base() {
     else
         # Done here, early, and not as the very last action of the whole run —
         # the password prompt should arrive while the user is still watching.
-        if chsh -s /usr/bin/zsh; then
+        #
+        # Plain `chsh` makes the account authenticate to itself, which fails
+        # outright when the account has no password (cloud images, and every
+        # test VM). Go through sudo, which the installer already relies on
+        # everywhere else, and keep bare chsh as the fallback for the case
+        # where sudo is the thing that is not available.
+        if sudo -n chsh -s /usr/bin/zsh "$USER" 2>/dev/null \
+           || sudo chsh -s /usr/bin/zsh "$USER" 2>/dev/null \
+           || chsh -s /usr/bin/zsh; then
             ok "$(msg ok_shell)"
         else
             warn "$(msg warn_chsh)"
