@@ -7,6 +7,7 @@ lines of everything.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -21,6 +22,55 @@ from gi.repository import Adw, Gtk  # noqa: E402
 REPO = Path(__file__).resolve().parent.parent.parent
 STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "buchhwin"
 
+def palettes() -> list[dict]:
+    """Every palette on disk, newest read each call.
+
+    Read from theme/palettes/ rather than listed here. The four Catppuccin
+    names used to be a constant in this file, in bin/bhctl and in install.sh —
+    three places, so a new palette was invisible in the settings window until
+    all three were edited, and nothing said so.
+    """
+    found = []
+    directory = REPO / "theme" / "palettes"
+    if not directory.is_dir():
+        return found
+    for path in sorted(directory.glob("*.json")):
+        try:
+            data = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+        found.append({
+            "name": data.get("name", path.stem),
+            "family": data.get("family", "Catppuccin"),
+            "display_name": data.get("display_name", path.stem),
+            "dark": bool(data.get("dark", True)),
+            "accents": data.get("accents") or sorted(data.get("colors", {})),
+        })
+    return found
+
+
+def families() -> list[str]:
+    seen: list[str] = []
+    for palette in palettes():
+        if palette["family"] not in seen:
+            seen.append(palette["family"])
+    return seen
+
+
+def accents_for(flavour: str) -> list[str]:
+    """The accents THIS palette offers.
+
+    They differ: Gruvbox has no "mauve", and apply-theme.py exits on an accent
+    the palette does not define. Offering all fourteen everywhere would let the
+    settings window write one that cannot be rendered.
+    """
+    for palette in palettes():
+        if palette["name"] == flavour:
+            return palette["accents"]
+    return ACCENTS
+
+
+# Kept as the fallback for a missing or unreadable palette directory.
 FLAVOURS = ["mocha", "macchiato", "frappe", "latte"]
 ACCENTS = ["rosewater", "flamingo", "pink", "mauve", "red", "maroon", "peach",
            "yellow", "green", "teal", "sky", "sapphire", "blue", "lavender"]

@@ -55,6 +55,42 @@ cmd_update() {
     fi
 }
 
+_palette_names() {
+    python3 - "$REPO_DIR" <<'PY'
+import json, sys
+from pathlib import Path
+for path in sorted((Path(sys.argv[1]) / "theme" / "palettes").glob("*.json")):
+    try:
+        print(json.loads(path.read_text()).get("name", path.stem))
+    except Exception:
+        pass
+PY
+}
+
+_palette_sibling() {
+    # The opposite-lightness palette of the same family, or Catppuccin's
+    # latte/mocha pair when the current family has only one lightness.
+    python3 - "$REPO_DIR" "$1" <<'PY'
+import json, sys
+from pathlib import Path
+current, base = sys.argv[2], Path(sys.argv[1]) / "theme" / "palettes"
+palettes = []
+for path in sorted(base.glob("*.json")):
+    try:
+        palettes.append(json.loads(path.read_text()))
+    except Exception:
+        pass
+here = next((p for p in palettes if p.get("name") == current), None)
+if here is None:
+    print("mocha" if current == "latte" else "latte")
+else:
+    want = not here.get("dark", True)
+    same = [p for p in palettes
+            if p.get("family") == here.get("family") and bool(p.get("dark", True)) is want]
+    print(same[0]["name"] if same else ("mocha" if want is False else "latte"))
+PY
+}
+
 cmd_theme() {
     local flavour="${1:-}" accent="${2:-}"
     local current_flavour current_accent
@@ -63,12 +99,15 @@ cmd_theme() {
 
     if [[ -z "$flavour" ]]; then
         printf '  %s / %s\n' "$current_flavour" "$current_accent"
-        printf '  available: mocha macchiato frappe latte\n'
+        printf '  available: %s\n' "$(_palette_names | tr '\n' ' ')"
         return 0
     fi
 
+    # Light <-> dark within the SAME family where possible. Hardcoding
+    # latte<->mocha meant that on Nord or Gruvbox the toggle threw you into
+    # Catppuccin, which is not what "switch to light" means.
     if [[ "$flavour" == "toggle" ]]; then
-        if [[ "$current_flavour" == "latte" ]]; then flavour="mocha"; else flavour="latte"; fi
+        flavour="$(_palette_sibling "$current_flavour")"
     fi
     [[ -z "$accent" ]] && accent="$current_accent"
 

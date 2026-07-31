@@ -45,8 +45,10 @@ Usage: ./install.sh [options]
                          "showcase" is slower with more blur for screenshots.
   --gpu amd|nvidia|intel|none|auto
                          Graphics driver branch. Default: auto-detect.
-  --flavour NAME         Catppuccin flavour: mocha, macchiato, frappe, latte.
-  --accent NAME          Catppuccin accent: mauve, blue, teal, peach, ...
+  --flavour NAME         Palette: mocha, latte, nord, gruvbox, dracula,
+                         tokyo-night, rose-pine, ... (theme/palettes/).
+  --accent NAME          Accent colour; which ones exist depends on the
+                         palette (see its "accents" list).
   --lang en|de           Interface language of the installer. Default: en.
   --only PHASE           Run only this phase (repeatable).
   --skip PHASE           Skip this phase (repeatable).

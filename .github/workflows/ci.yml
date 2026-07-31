@@ -56,11 +56,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: every flavour renders with no placeholders left
+      - name: every palette is complete
         run: |
-          for flavour in mocha macchiato frappe latte; do
+          python3 - <<'PY'
+          import json, sys
+          from pathlib import Path
+          base = Path("theme/palettes")
+          need = set(json.loads((base / "mocha.json").read_text())["colors"])
+          bad = False
+          for path in sorted(base.glob("*.json")):
+              data = json.loads(path.read_text())
+              have = set(data.get("colors", {}))
+              if data.get("name") != path.stem:
+                  print(f"{path.name}: name is {data.get('name')!r}, file is {path.stem!r}"); bad = True
+              for field in ("family", "display_name", "dark", "accents"):
+                  if field not in data:
+                      print(f"{path.name}: missing {field}"); bad = True
+              if need - have:
+                  print(f"{path.name}: missing colours {sorted(need - have)}"); bad = True
+              if have - need:
+                  print(f"{path.name}: unknown colours {sorted(have - need)}"); bad = True
+              for accent in data.get("accents", []):
+                  if accent not in have:
+                      print(f"{path.name}: accent {accent!r} is not one of its colours"); bad = True
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: every palette renders with no placeholders left
+        run: |
+          # Every palette, not a hardcoded four: a new one that fails to render
+          # must fail here rather than in somebody's session. The accent comes
+          # from the palette because they differ — Gruvbox has no "mauve".
+          for path in theme/palettes/*.json; do
+            flavour=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['name'])" "$path")
+            accent=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['accents'][0])" "$path")
             XDG_CONFIG_HOME=/tmp/out-$flavour XDG_STATE_HOME=/tmp/state-$flavour \
-              python3 theme/apply-theme.py --flavour "$flavour" --accent mauve --no-reload
+              python3 theme/apply-theme.py --flavour "$flavour" --accent "$accent" --no-reload
             if grep -rq '{{' /tmp/out-$flavour; then
               echo "unresolved placeholder in $flavour"; grep -rn '{{' /tmp/out-$flavour; exit 1
             fi

@@ -68,17 +68,49 @@ _clone_or_update() {
     fi
 }
 
+_palette_field() {
+    # One field out of theme/palettes/<name>.json. Empty when the palette is
+    # missing, so callers fall back rather than break the install.
+    python3 - "$REPO_DIR" "$1" "$2" 2>/dev/null <<'PY' || true
+import json, sys
+from pathlib import Path
+path = Path(sys.argv[1]) / "theme" / "palettes" / f"{sys.argv[2]}.json"
+try:
+    print(json.loads(path.read_text()).get(sys.argv[3], ""))
+except Exception:
+    print("")
+PY
+}
+
 phase_theme() {
     section "$(msg sec_theme)"
 
     local src="$DATA_HOME/buchhwin-sources"
-    local dark="dark"
-    [[ "$THEME_FLAVOUR" == "latte" ]] && dark="light"
+
+    # Light or dark, and which family — read from the palette rather than from
+    # a hardcoded "latte means light". There are nine palettes now and more can
+    # be dropped into theme/palettes/ without editing this file.
+    local dark="dark" family="Catppuccin"
+    if [[ "$(_palette_field "$THEME_FLAVOUR" dark)" == "False" ]]; then dark="light"; fi
+    family="$(_palette_field "$THEME_FLAVOUR" family)"
+
+    # Cursors, recoloured folders, Kvantum and the SDDM theme are downloaded
+    # from the Catppuccin project. They exist for Catppuccin and for nothing
+    # else, so for any other family they are skipped with a note rather than
+    # failing four times over. Everything the theme ENGINE renders — 17 files,
+    # every application — works for every palette; these four are extras.
+    local catppuccin=0
+    [[ "$family" == "Catppuccin" ]] && catppuccin=1
 
     _install_nerd_font
 
+    if (( ! catppuccin )); then
+        info "$(msg note_family_extras "$family")"
+    fi
+
     # --- cursors -------------------------------------------------------------
     local cursor_name="catppuccin-${THEME_FLAVOUR}-${dark}-cursors"
+    if (( catppuccin )); then
     if [[ -d "$DATA_HOME/icons/$cursor_name" ]]; then
         info "$(msg info_cursor_present)"
     else
@@ -86,6 +118,7 @@ phase_theme() {
         _fetch_zip \
             "https://github.com/catppuccin/cursors/releases/latest/download/${cursor_name}.zip" \
             "$DATA_HOME/icons" "cursors" && ok "$(msg ok_cursors)"
+    fi
     fi
 
     # --- GTK -----------------------------------------------------------------
@@ -98,7 +131,9 @@ phase_theme() {
 
     # --- icons ---------------------------------------------------------------
     step "$(msg step_icons)"
-    if _clone_or_update "https://github.com/catppuccin/papirus-folders.git" "$src/papirus-folders"; then
+    if (( ! catppuccin )); then
+        :   # nothing to recolour: the folder sets are a Catppuccin artefact
+    elif _clone_or_update "https://github.com/catppuccin/papirus-folders.git" "$src/papirus-folders"; then
         if ! (( DRY_RUN )); then
             # Copy the recoloured folder sets into the user icon directory so
             # no root-owned files land in /usr/share.
@@ -107,7 +142,8 @@ phase_theme() {
             if [[ -x "$src/papirus-folders/papirus-folders" ]]; then
                 "$src/papirus-folders/papirus-folders" \
                     -C "cat-${THEME_FLAVOUR}-${THEME_ACCENT}" \
-                    --theme "Papirus-Dark" >>"$LOG_FILE" 2>&1 || warn "$(msg warn_icons)"
+                    --theme "Papirus-$([[ "$dark" == "light" ]] && echo Light || echo Dark)" \
+                    >>"$LOG_FILE" 2>&1 || warn "$(msg warn_icons)"
             fi
         fi
     else
@@ -116,7 +152,7 @@ phase_theme() {
 
     # --- Qt / Kvantum --------------------------------------------------------
     step "$(msg step_kvantum)"
-    if _clone_or_update "https://github.com/catppuccin/kvantum.git" "$src/catppuccin-kvantum"; then
+    if (( catppuccin )) && _clone_or_update "https://github.com/catppuccin/kvantum.git" "$src/catppuccin-kvantum"; then
         if ! (( DRY_RUN )); then
             local kv="$src/catppuccin-kvantum/themes/catppuccin-${THEME_FLAVOUR}-${THEME_ACCENT}"
             if [[ -d "$kv" ]]; then
@@ -132,6 +168,7 @@ phase_theme() {
 
     # --- SDDM greeter --------------------------------------------------------
     local sddm_theme="catppuccin-${THEME_FLAVOUR}-${THEME_ACCENT}-sddm"
+    if (( catppuccin )); then
     step "$(msg step_sddm_theme "$sddm_theme")"
     if _fetch_zip \
         "https://github.com/catppuccin/sddm/releases/latest/download/${sddm_theme}.zip" \
@@ -145,6 +182,7 @@ phase_theme() {
                 | sudo tee /etc/sddm.conf.d/20-buchhwin-theme.conf >/dev/null
             ok "$(msg ok_sddm_theme)"
         fi
+    fi
     fi
 
     # --- render every app config from the palette ---------------------------

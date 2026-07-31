@@ -1,6 +1,24 @@
 {
   "name": "mocha",
+  "family": "Catppuccin",
+  "display_name": "Mocha",
   "dark": true,
+  "accents": [
+    "rosewater",
+    "flamingo",
+    "pink",
+    "mauve",
+    "red",
+    "maroon",
+    "peach",
+    "yellow",
+    "green",
+    "teal",
+    "sky",
+    "sapphire",
+    "blue",
+    "lavender"
+  ],
   "colors": {
     "rosewater": "f5e0dc",
     "flamingo": "f2cdcd",

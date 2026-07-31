@@ -19,7 +19,8 @@ gi.require_version("Adw", "1")
 
 from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
-from ..helpers import (ACCENTS, FLAVOURS, REPO, STATE, combo_row,  # noqa: F401
+from ..helpers import (ACCENTS, FLAVOURS, REPO, STATE, accents_for,  # noqa: F401
+                       combo_row, families, palettes,
                        cursor_themes, group, page, pinnable_apps, run,
                        run_lines, slider_row, spin_row, switch_row)
 from ..keycapture import KeyCaptureDialog  # noqa: E402
@@ -27,16 +28,32 @@ from ..keycapture import KeyCaptureDialog  # noqa: E402
 
 def build(win):
     p = page(_("Theme"), "applications-graphics-symbolic")
-    g = group(p, _("Catppuccin"),
+    g = group(p, _("Colours"),
               _("One click recolours Hyprland, the bar, notifications, "
                 "menus, the terminal, GTK, Qt, icons and the cursor."))
 
-    combo_row(g, _("Flavour"), _("Latte is the light one"), FLAVOURS,
-              win.s.get("theme.flavour", "mocha"),
-              lambda v: win.s.set("theme.flavour", v))
-    combo_row(g, _("Accent colour"), "", ACCENTS,
-              win.s.get("theme.accent", "mauve"),
-              lambda v: win.s.set("theme.accent", v))
+    # Family, then variant, then accent — all read from theme/palettes/, so a
+    # palette dropped in there appears here without touching this file.
+    available = palettes()
+    current = win.s.get("theme.flavour", "mocha")
+    here = next((x for x in available if x["name"] == current), None)
+    current_family = here["family"] if here else "Catppuccin"
+
+    win._theme_variant_row = None
+    win._theme_accent_row = None
+
+    combo_row(g, _("Colour family"), "", families() or ["Catppuccin"],
+              current_family,
+              lambda v: _on_family(win, g, v))
+
+    _add_variant_rows(win, g, current_family, current)
+
+    row = Adw.ActionRow(
+        title=_("Variants"),
+        subtitle=", ".join(f'{x["display_name"]}{" (light)" if not x["dark"] else ""}'
+                           for x in available if x["family"] == current_family))
+    row.set_subtitle_lines(0)
+    g.add(row)
 
     row = Adw.ActionRow(
         title=_("Apply theme now"),
@@ -54,6 +71,51 @@ def build(win):
                lambda v: win.s.set("wallpaper.follow_theme", v))
 
     win.add_page(p, "theme", _("Theme"), "applications-graphics-symbolic")
+
+
+def _add_variant_rows(win, g, family: str, flavour: str) -> None:
+    """The variant and accent combos for one family.
+
+    Rebuilt when the family changes: Gruvbox has no "mauve", and
+    apply-theme.py exits on an accent its palette does not define — so the list
+    has to follow the palette rather than offer all fourteen everywhere.
+    """
+    members = [x for x in palettes() if x["family"] == family]
+    names = [x["name"] for x in members] or [flavour]
+    if flavour not in names:
+        flavour = names[0]
+        win.s.set("theme.flavour", flavour)
+
+    if win._theme_variant_row is not None:
+        g.remove(win._theme_variant_row)
+    if win._theme_accent_row is not None:
+        g.remove(win._theme_accent_row)
+
+    win._theme_variant_row = combo_row(
+        g, _("Variant"), _("Light variants say so in the list below"),
+        names, flavour,
+        lambda v: _on_variant(win, g, family, v))
+
+    allowed = accents_for(flavour)
+    accent = win.s.get("theme.accent", "mauve")
+    if accent not in allowed:
+        accent = allowed[0]
+        win.s.set("theme.accent", accent)
+    win._theme_accent_row = combo_row(
+        g, _("Accent colour"), "", allowed, accent,
+        lambda v: win.s.set("theme.accent", v))
+
+
+def _on_family(win, g, family: str) -> None:
+    members = [x for x in palettes() if x["family"] == family]
+    if members:
+        win.s.set("theme.flavour", members[0]["name"])
+    _add_variant_rows(win, g, family, win.s.get("theme.flavour", "mocha"))
+
+
+def _on_variant(win, g, family: str, flavour: str) -> None:
+    win.s.set("theme.flavour", flavour)
+    _add_variant_rows(win, g, family, flavour)
 
 
 def _render_theme(win, _btn):

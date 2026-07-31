@@ -1,6 +1,24 @@
 {
   "name": "macchiato",
+  "family": "Catppuccin",
+  "display_name": "Macchiato",
   "dark": true,
+  "accents": [
+    "rosewater",
+    "flamingo",
+    "pink",
+    "mauve",
+    "red",
+    "maroon",
+    "peach",
+    "yellow",
+    "green",
+    "teal",
+    "sky",
+    "sapphire",
+    "blue",
+    "lavender"
+  ],
   "colors": {
     "rosewater": "f4dbd6",
     "flamingo": "f0c6c6",

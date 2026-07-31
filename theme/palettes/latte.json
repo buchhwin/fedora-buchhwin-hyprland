@@ -1,6 +1,24 @@
 {
   "name": "latte",
+  "family": "Catppuccin",
+  "display_name": "Latte",
   "dark": false,
+  "accents": [
+    "rosewater",
+    "flamingo",
+    "pink",
+    "mauve",
+    "red",
+    "maroon",
+    "peach",
+    "yellow",
+    "green",
+    "teal",
+    "sky",
+    "sapphire",
+    "blue",
+    "lavender"
+  ],
   "colors": {
     "rosewater": "dc8a78",
     "flamingo": "dd7878",

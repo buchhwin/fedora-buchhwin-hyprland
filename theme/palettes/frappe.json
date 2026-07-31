@@ -1,6 +1,24 @@
 {
   "name": "frappe",
+  "family": "Catppuccin",
+  "display_name": "Frappé",
   "dark": true,
+  "accents": [
+    "rosewater",
+    "flamingo",
+    "pink",
+    "mauve",
+    "red",
+    "maroon",
+    "peach",
+    "yellow",
+    "green",
+    "teal",
+    "sky",
+    "sapphire",
+    "blue",
+    "lavender"
+  ],
   "colors": {
     "rosewater": "f2d5cf",
     "flamingo": "eebebe",
