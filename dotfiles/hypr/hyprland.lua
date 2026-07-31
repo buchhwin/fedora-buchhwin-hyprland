@@ -83,7 +83,14 @@ hl.config({
             inactive_border = T.border_inactive,
         },
 
-        resize_on_border = true,
+        -- Off by default, and that is deliberate. Hyprland pairs this with
+        -- extend_border_grab_area (15px), so the resize handle reaches well
+        -- past the visible border and straight over the close button of any
+        -- client-side-decorated window. Aiming for that button then drags the
+        -- window instead of pressing it, which is exactly as maddening as it
+        -- sounds. Resizing with the mouse still works on SUPER + right-drag
+        -- (see binds.lua), and the keyboard snaps are untouched.
+        resize_on_border = layout.resize_on_border == true,
         allow_tearing    = false,
         layout           = layout.default or "dwindle",
 
@@ -139,6 +146,16 @@ hl.config({
     },
 
     master = { new_status = "master" },
+
+    -- Hyprland's own popups. The update notice appears in the middle of the
+    -- screen after every version bump, and the donation nag twice a year.
+    -- Neither belongs in a desktop somebody else installed: the first thing a
+    -- new user would see is a dialog about a component they did not choose.
+    -- Support Hyprland, just not by ambushing the person who ran our installer.
+    ecosystem = {
+        no_update_news   = true,
+        no_donation_nag  = true,
+    },
 
     misc = {
         force_default_wallpaper   = 0,

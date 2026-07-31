@@ -128,6 +128,7 @@ declare -gA MSG=(
     [step_enable_units]="Enabling user services"
     [warn_unit]="Service %s could not be enabled"
     [step_generated_units]="Generating the wallpaper timer and drive units"
+    [step_nm_applet]="Leaving the network icon to the bar"
     [step_pam_keyring]="Unlocking the keyring at login"
     [info_pam_present]="Keyring already unlocks at login"
     [ok_pam_keyring]="Keyring unlocks with your login password"

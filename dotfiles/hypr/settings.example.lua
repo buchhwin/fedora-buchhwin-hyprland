@@ -232,6 +232,11 @@ return {
         snap_window_gap     = 12,
         snap_monitor_gap    = 12,
         floating_workspaces = {},          -- e.g. { 5 }
+
+        -- Drag a window's edge to resize it. Off, because Hyprland's grab area
+        -- reaches 15px past the border and swallows clicks meant for the close
+        -- button. SUPER + right-drag resizes regardless of this setting.
+        resize_on_border    = false,
     },
 
     -- =====================================================================

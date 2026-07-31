@@ -76,10 +76,13 @@ jetbrains-mono-fonts
 rsms-inter-fonts
 google-noto-color-emoji-fonts
 
-# --- runtime for the settings GUI -------------------------------------------
+# --- runtime for the settings GUI and the bar popups ------------------------
 python3-gobject
 gtk4
 libadwaita
+# Anchors the bar popups to the top-right corner above tiled windows. Without
+# it they would be ordinary windows that land wherever the layout decides.
+gtk4-layer-shell
 
 # --- fetch / monitor --------------------------------------------------------
 btop

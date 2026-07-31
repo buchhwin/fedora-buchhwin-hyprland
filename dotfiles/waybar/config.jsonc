@@ -14,9 +14,14 @@
 
     "modules-left":   ["custom/logo", "hyprland/workspaces", "hyprland/submap"],
     "modules-center": ["hyprland/window"],
-    "modules-right":  ["tray", "custom/recording", "custom/drives", "pulseaudio",
-                       "bluetooth", "network", "cpu", "memory", "temperature",
-                       "battery", "custom/calendar", "clock",
+    // The right-hand side is a status area, not a dashboard. Four things you
+    // act on — sound, network, battery, clock — each with a popup behind it,
+    // the way Windows does it. cpu/memory/temperature used to sit here and are
+    // gone on purpose: they are numbers you watch, not controls, and btop
+    // shows them properly (SUPER+Escape). Bluetooth moved into the tray, which
+    // is also where Windows keeps it.
+    "modules-right":  ["tray", "custom/recording", "custom/drives",
+                       "pulseaudio", "network", "battery", "clock",
                        "custom/notifications", "custom/power"],
 
     // One bar per screen, and each shows only its own workspaces. Without
@@ -71,11 +76,16 @@
         "on-click": "~/.local/share/fedora-buchhwin-hyprland/scripts/record.sh"
     },
 
+    // Left click opens the popup — that is the Windows gesture and the one
+    // people reach for. Muting moved to the middle button; it used to be the
+    // left click, and it is still one click, just not the one that now has a
+    // more useful job. Scrolling to change the volume is unchanged.
     "pulseaudio": {
         "format": "{icon} {volume}%",
-        "format-muted": "󰝟 muted",
+        "format-muted": "󰝟",
         "format-icons": { "headphone": "󰋋", "headset": "󰋎", "default": ["󰕿", "󰖀", "󰕾"] },
-        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel audio",
+        "on-click-middle": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
         "on-click-right": "pavucontrol",
         "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 2%+",
         "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-",
@@ -90,13 +100,20 @@
         "on-click": "blueman-manager"
     },
 
+    // Ethernet shows the icon and nothing else. The interface name ("ens18",
+    // "enp3s0") was pure noise: on a wired machine there is only one, and its
+    // kernel name tells you nothing you did not already know. Wi-Fi keeps its
+    // network name, because with several around that is the whole point.
     "network": {
         "format-wifi": "󰤨 {essid}",
-        "format-ethernet": "󰈀 {ifname}",
+        "format-ethernet": "󰈀",
         "format-linked": "󰈀 no IP",
-        "format-disconnected": "󰤭 offline",
-        "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n󰇚 {bandwidthDownBytes}  󰕒 {bandwidthUpBytes}",
-        "on-click": "nm-connection-editor",
+        "format-disconnected": "󰤭",
+        "tooltip-format-wifi": "{essid} ({signalStrength}%)\n{ifname}: {ipaddr}/{cidr}",
+        "tooltip-format-ethernet": "Wired · {ifname}\n{ipaddr}/{cidr}",
+        "tooltip-format-disconnected": "Not connected",
+        "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel network",
+        "on-click-right": "nm-connection-editor",
         "interval": 5
     },
 
@@ -123,6 +140,9 @@
         "tooltip": false
     },
 
+    // Laptops only. Waybar's battery module finds nothing under
+    // /sys/class/power_supply on a desktop and renders nothing, so this needs
+    // no condition of its own — verified in a VM, which has no battery either.
     "battery": {
         "format": "{icon} {capacity}%",
         "format-charging": "󰂄 {capacity}%",
@@ -132,34 +152,16 @@
         "tooltip-format": "{timeTo}"
     },
 
+    // Time AND date, like the Windows clock — the date was previously hidden
+    // behind format-alt, where nobody found it. Clicking opens the calendar
+    // popup, which shows the month and that day's appointments; the old
+    // tooltip month-grid is gone because having both would be two answers to
+    // the same question.
     "clock": {
-        "format": "󰥔 {:%H:%M}",
-        "format-alt": "󰃭 {:%a, %d %b %Y}",
-        "tooltip-format": "<tt><small>{calendar}</small></tt>",
-        "calendar": {
-            "mode": "month",
-            "weeks-pos": "right",
-            "format": {
-                "months":  "<span color='#cba6f7'><b>{}</b></span>",
-                "days":    "<span color='#cdd6f4'>{}</span>",
-                "weeks":   "<span color='#94e2d5'>W{}</span>",
-                "weekdays":"<span color='#f9e2af'><b>{}</b></span>",
-                "today":   "<span color='#f38ba8'><b><u>{}</u></b></span>"
-            }
-        }
-    },
-
-    // Real appointments, not just a month grid. Fed by scripts/calendar.py,
-    // which reads the same evolution-data-server the calendar app uses — so
-    // the bar and GNOME Calendar can never disagree.
-    "custom/calendar": {
-        "exec": "~/.local/share/fedora-buchhwin-hyprland/scripts/calendar.py waybar",
-        "return-type": "json",
-        "interval": 60,
-        "on-click": "gnome-calendar",
-        "on-click-right": "evolution -c calendar",
-        "escape": false,
-        "max-length": 34
+        "format": "{:%H:%M  %a %d.%m.}",
+        "tooltip": false,
+        "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel calendar",
+        "on-click-right": "gnome-calendar"
     },
 
     // Only visible while something is mounted, so it costs no space on a

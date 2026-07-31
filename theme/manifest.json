@@ -12,6 +12,7 @@
     { "template": "hypr-theme.lua.tmpl",     "target": "$CONFIG/hypr/theme.lua",              "group": "hypr"   },
     { "template": "hyprlock.conf.tmpl",      "target": "$CONFIG/hypr/hyprlock.conf",          "group": "hypr"   },
     { "template": "waybar-colors.css.tmpl",  "target": "$CONFIG/waybar/colors.css",           "group": "waybar" },
+    { "template": "panel-colors.css.tmpl",   "target": "$CONFIG/buchhwin-panel/colors.css",   "group": "misc"   },
     { "template": "swaync-colors.css.tmpl",  "target": "$CONFIG/swaync/colors.css",           "group": "swaync" },
     { "template": "rofi-colors.rasi.tmpl",   "target": "$CONFIG/rofi/colors.rasi",            "group": "rofi"   },
     { "template": "kitty-theme.conf.tmpl",   "target": "$CONFIG/kitty/theme.conf",            "group": "kitty"  },

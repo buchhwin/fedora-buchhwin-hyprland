@@ -1,0 +1,144 @@
+/* Layout for the bar popups. Hand-written and kept in the repo.
+ *
+ * Colours come from $CONFIG/buchhwin-panel/colors.css, which
+ * theme/apply-theme.py generates from the chosen palette — the same split the
+ * bar uses, so switching flavour never touches layout.
+ *
+ * Deliberately no @import: the two files live in different trees (repo vs.
+ * config), so no relative URL reaches from one to the other. popup.py loads
+ * both as CSS providers instead, colours first. GTK shares @define-color
+ * across providers on the same display, so the names below resolve. */
+
+.buchhwin-popup {
+    background: transparent;
+}
+
+.popup-body {
+    background-color: @popupbg;
+    color: @text;
+    border: 1px solid @surface1;
+    border-radius: 14px;
+    padding: 14px;
+    /* Matches the bar's own pill radius, so the popup reads as the same
+     * object hanging down rather than a dialog that happened to appear. */
+}
+
+.popup-heading {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: @text;
+}
+
+.popup-subtle,
+.popup-note {
+    color: @subtext0;
+    font-size: 0.88rem;
+}
+
+/* --- calendar ---------------------------------------------------------- */
+
+.popup-calendar {
+    background: transparent;
+    padding: 2px;
+}
+
+.popup-calendar:selected,
+.popup-calendar > * :selected {
+    background-color: @accent;
+    color: @crust;
+    border-radius: 8px;
+}
+
+.popup-agenda {
+    min-height: 24px;
+}
+
+.agenda-row {
+    padding: 3px 2px;
+}
+
+.agenda-time {
+    color: @accent;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.agenda-title {
+    color: @text;
+}
+
+/* --- rows shared by audio and network ---------------------------------- */
+
+.popup-list {
+    background: transparent;
+}
+
+.popup-row {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 8px;
+    padding: 7px 9px;
+    min-height: 0;
+}
+
+.popup-row:hover {
+    background-color: @surface1;
+}
+
+.popup-row-active {
+    background-color: @surface0;
+    color: @accent;
+    font-weight: 600;
+}
+
+/* --- controls ---------------------------------------------------------- */
+
+.popup-slider trough {
+    background-color: @surface1;
+    border-radius: 6px;
+    min-height: 6px;
+}
+
+.popup-slider highlight {
+    background-color: @accent;
+    border-radius: 6px;
+}
+
+.popup-slider slider {
+    background-color: @text;
+    border-radius: 50%;
+    min-width: 14px;
+    min-height: 14px;
+    margin: -5px;
+}
+
+.popup-icon-button {
+    background-color: @surface0;
+    border: none;
+    border-radius: 8px;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+.popup-icon-button:checked {
+    background-color: @red;
+    color: @crust;
+}
+
+.popup-action {
+    background-color: @surface0;
+    color: @text;
+    border: none;
+    border-radius: 9px;
+    padding: 8px;
+    font-weight: 600;
+}
+
+.popup-action:hover {
+    background-color: @surface1;
+}
+
+.popup-status {
+    padding: 2px 0;
+}

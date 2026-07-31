@@ -150,7 +150,10 @@ local placement = {
     { class = "^(brave-origin-whatsapp)$",           workspace = "5" },
     { class = "^(brave-origin-outlook)$",            workspace = "2" },
     { class = "^(brave-origin-microsoft-365)$",      workspace = "2" },
-    { class = "^(gnome-calendar|org.gnome.Calendar)$", workspace = "4" },
+    -- gnome-calendar is deliberately NOT placed. It is opened from the clock
+    -- popup, so it has to appear where you are looking; being teleported to
+    -- another workspace after clicking "Open calendar" reads as the button
+    -- having failed.
 }
 for i, p in ipairs(placement) do
     hl.window_rule({ name = "place-" .. i, match = { class = p.class },

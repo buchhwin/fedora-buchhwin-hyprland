@@ -115,6 +115,7 @@ declare -gA MSG=(
     [step_enable_units]="Benutzerdienste werden aktiviert"
     [warn_unit]="Dienst %s konnte nicht aktiviert werden"
     [step_generated_units]="Wallpaper-Timer und Laufwerks-Dienste werden erzeugt"
+    [step_nm_applet]="Netzwerk-Symbol bleibt der Leiste überlassen"
     [step_pam_keyring]="Schlüsselbund wird bei der Anmeldung entsperrt"
     [info_pam_present]="Schlüsselbund wird bereits bei der Anmeldung entsperrt"
     [ok_pam_keyring]="Schlüsselbund öffnet sich mit dem Anmeldepasswort"

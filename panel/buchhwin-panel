@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+"""Popups for the bar's status area.
+
+    buchhwin-panel calendar    month view and the day's appointments
+    buchhwin-panel audio       volume, mute, output device
+    buchhwin-panel network     connection status and Wi-Fi
+
+Each is bound to the matching Waybar module's on-click. Running the same one
+twice closes it, so clicking the clock again puts the calendar away instead of
+opening a second copy — see Popup.toggle_or_run.
+"""
+
+from __future__ import annotations
+
+import ctypes.util
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+USAGE = "usage: buchhwin-panel calendar|audio|network"
+
+_PRELOAD_FLAG = "BUCHHWIN_PANEL_PRELOADED"
+
+
+def _ensure_layer_shell_preloaded() -> None:
+    """Re-exec with libgtk4-layer-shell in LD_PRELOAD, once.
+
+    gtk4-layer-shell has to be loaded before libwayland-client. A C program
+    controls that with linker order; an interpreter cannot, because importing
+    gi pulls in GTK — and therefore libwayland — first. The library then prints
+
+        Failed to initialize layer surface, GTK4 Layer Shell may have been
+        linked after libwayland
+
+    and every window silently becomes an ordinary one: not anchored, not above
+    tiled windows, no click-outside-to-close. The popup still appears, which is
+    what makes this worth handling rather than ignoring — it looks like it
+    works.
+
+    Upstream's documented answer for this case is LD_PRELOAD, so do it here
+    instead of putting a path in the Waybar config. The flag variable stops an
+    exec loop if the preload does not take.
+    """
+    if os.environ.get(_PRELOAD_FLAG):
+        return
+
+    soname = ctypes.util.find_library("gtk4-layer-shell")
+    if not soname:
+        return                      # not installed; popup falls back to a window
+
+    existing = os.environ.get("LD_PRELOAD", "")
+    if soname in existing:
+        return
+
+    env = dict(os.environ)
+    env["LD_PRELOAD"] = f"{soname}:{existing}" if existing else soname
+    env[_PRELOAD_FLAG] = "1"
+    try:
+        os.execve(sys.executable, [sys.executable, os.path.abspath(__file__),
+                                   *sys.argv[1:]], env)
+    except OSError:
+        return                      # carry on unanchored rather than not at all
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 2:
+        print(USAGE, file=sys.stderr)
+        return 2
+
+    # Before anything imports gi.
+    _ensure_layer_shell_preloaded()
+
+    which = argv[1]
+    if which == "calendar":
+        from calendar_popup import CalendarPopup as Klass
+    elif which == "audio":
+        from audio_popup import AudioPopup as Klass
+    elif which == "network":
+        from network_popup import NetworkPopup as Klass
+    else:
+        print(f"unknown popup: {which}\n{USAGE}", file=sys.stderr)
+        return 2
+
+    return Klass.toggle_or_run()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

@@ -149,6 +149,40 @@ RestartSec=5
 [Install]
 WantedBy=graphical-session.target'
 
+    # No unit for blueman-applet on purpose. Bluetooth moved out of the bar and
+    # into the tray, and the obvious next step is a unit that starts the applet
+    # — but Fedora's blueman package already ships /etc/xdg/autostart/blueman
+    # .desktop, which the session honours. Adding one here would run a second
+    # applet and put two Bluetooth icons in the tray. Checked in a running VM
+    # before writing this: pid 1202, parent Hyprland, from XDG autostart.
+
+    # --- one network icon, not two -------------------------------------------
+    # network-manager-applet also autostarts, and its tray icon says exactly
+    # what the bar's network module already says — two network icons, side by
+    # side. The package stays (nm-connection-editor comes from it, and the
+    # network popup opens it); only the autostart is switched off, the way the
+    # spec intends: a user-level .desktop with Hidden=true masks the system one.
+    #
+    # It is also the NetworkManager secret agent, so this is not free: without
+    # it, a prompt for a Wi-Fi password can only come from something that
+    # brings its own agent. The network popup does — it connects through
+    # `nmcli --ask`. Anything more involved goes through nm-connection-editor,
+    # which stores the secret in the profile.
+    step "$(msg step_nm_applet)"
+    if (( DRY_RUN )); then
+        printf '     %s[dry-run]%s hide nm-applet autostart\n' "$C_DIM" "$C_RESET"
+    else
+        mkdir -p "$CONFIG_HOME/autostart"
+        cat >"$CONFIG_HOME/autostart/nm-applet.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Network Manager applet
+Exec=/usr/bin/nm-applet --indicator
+Hidden=true
+X-Buchhwin-Reason=the bar has its own network module and popup
+EOF
+    fi
+
     # --- keyring -------------------------------------------------------------
     # Without a running secret service every cloud and network drive asks for
     # its password again on every login, which defeats "sign in once".

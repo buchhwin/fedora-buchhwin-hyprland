@@ -42,8 +42,14 @@ def load_gi():
         return ("error", str(exc))
 
 
-def fetch_events(days: int = WINDOW_DAYS) -> tuple[list[dict], str | None]:
-    """Return (events, error). Events are dicts with start/end/summary/all_day."""
+def fetch_events(days: int = WINDOW_DAYS,
+                 since: datetime | None = None) -> tuple[list[dict], str | None]:
+    """Return (events, error). Events are dicts with start/end/summary/all_day.
+
+    `since` defaults to now, which is what the bar module wants — it only ever
+    shows what is still ahead. The calendar popup passes an explicit start so
+    it can also show a day that has already been and gone.
+    """
     loaded = load_gi()
     if isinstance(loaded, tuple) and loaded and loaded[0] == "error":
         return [], f"evolution-data-server is not available ({loaded[1]})"
@@ -58,7 +64,7 @@ def fetch_events(days: int = WINDOW_DAYS) -> tuple[list[dict], str | None]:
     if not sources:
         return [], "no calendars configured"
 
-    now = datetime.now(UTC)
+    now = since.astimezone(UTC) if since else datetime.now(UTC)
     end = now + timedelta(days=days)
     start_ts, end_ts = int(now.timestamp()), int(end.timestamp())
 

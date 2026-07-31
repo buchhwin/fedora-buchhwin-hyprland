@@ -55,6 +55,12 @@ phase_dotfiles() {
     run mkdir -p "$BIN_HOME"
     run ln -sfn "$REPO_DIR/bin/bhctl" "$BIN_HOME/bhctl"
 
+    # The bar popups. Waybar calls them by their path inside the checkout, so
+    # there is nothing to link — but a tarball download or a stray umask can
+    # arrive without the executable bit, and then clicking the clock silently
+    # does nothing at all.
+    run chmod +x "$REPO_DIR/panel/buchhwin-panel"
+
     # ~/.local/bin is on Fedora's default PATH, but only if it exists at login
     # time — on a fresh Server install it does not.
     ensure_block "$HOME/.zprofile" "buchhwin path" \
