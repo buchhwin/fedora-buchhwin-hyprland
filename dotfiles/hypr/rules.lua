@@ -149,7 +149,7 @@ hl.window_rule({ name = "opaque-media",
 local floaters = {
     "^(pavucontrol)$", "^(blueman-manager)$", "^(nm-connection-editor)$",
     "^(org.kde.polkit-kde-authentication-agent-1)$", "^(hyprpolkitagent)$",
-    "^(qt6ct)$", "^(kvantummanager)$", "^(buchhwin-control-center)$",
+    "^(qt6ct)$", "^(kvantummanager)$",
     "^(org.gnome.Calculator)$", "^(file-roller)$", "^(xdg-desktop-portal-gtk)$",
 }
 for i, cls in ipairs(floaters) do
@@ -162,7 +162,18 @@ hl.window_rule({ name = "float-dialogs",
                  float = true, center = true, size = "980 640" })
 
 -- The settings window: fixed, comfortable size, centred.
-hl.window_rule({ name = "settings-size", match = { class = "^(buchhwin-control-center)$" },
+--
+-- The class is the GTK application id, NOT the executable name. It was matched
+-- against "buchhwin-control-center" here and in the floating list, so neither
+-- rule ever fired and the settings window was squeezed into whatever tile the
+-- layout had left — which is the last thing a window full of two-column rows
+-- should be. Checked with `hyprctl clients`, not guessed from the file name.
+hl.window_rule({ name = "settings-size",
+                 match = { class = "^(de\\.buchhwin\\.ControlCenter)$" },
+                 -- 700 rather than 760: centred on an 800px-high screen a
+                 -- taller window leaves less margin than the bar is thick, so
+                 -- its header ends up underneath the bar. Roomy is good, wider
+                 -- than the screen can hold is not.
                  size = "1000 700", float = true, center = true })
 
 ------------------------------------------------------------------------------

@@ -102,6 +102,38 @@ def run(*cmd: str) -> None:
         pass
 
 
+def cursor_themes() -> list[str]:
+    """Pointer themes actually installed, not a hard-coded list.
+
+    A theme is a directory under an icons path that contains a cursors/ folder;
+    icon themes without one would be offered and then not work.
+    """
+    found: set[str] = set()
+    for base in (Path("/usr/share/icons"), Path.home() / ".icons",
+                 Path.home() / ".local/share/icons"):
+        if not base.is_dir():
+            continue
+        for entry in base.iterdir():
+            if (entry / "cursors").is_dir():
+                found.add(entry.name)
+    return sorted(found) or ["breeze_cursors"]
+
+
+def run_lines(cmd: list[str], timeout: int = 6) -> list[str]:
+    """Run a command and return its output lines, or nothing on any failure.
+
+    Every settings page that shows live system state uses this. A settings
+    window must never hang or crash because a tool is missing or slow — an
+    empty section is a fair answer, a frozen window is not.
+    """
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True, check=False,
+                             timeout=timeout).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    return [line for line in out.splitlines() if line.strip()]
+
+
 def page(title: str, icon: str) -> Adw.PreferencesPage:
     return Adw.PreferencesPage(title=title, icon_name=icon)
 
@@ -246,6 +278,10 @@ class Window(Adw.ApplicationWindow):
         self._page_drives()
         self._page_accounts()
         self._page_input()
+        self._page_sound()
+        self._page_network()
+        self._page_displays()
+        self._page_apps()
         self._page_power()
         self._page_autostart()
         self._page_about()
@@ -331,6 +367,37 @@ class Window(Adw.ApplicationWindow):
                       else _("none — SUPER+SHIFT+Space switches the current one")))
         row.set_subtitle_lines(0)
         g.add(row)
+
+        spin_row(g, _("Gap when only one window is open"), _("Pixels"), 0, 40, 1,
+                 self.s.get("look.gaps_single", 4),
+                 lambda v: self.s.set("look.gaps_single", int(v)))
+
+        g = group(p, _("Mouse pointer"),
+                  _("Any theme under /usr/share/icons with a cursors folder."))
+        combo_row(g, _("Pointer theme"), "", cursor_themes(),
+                  self.s.get("look.cursor_theme", "breeze_cursors"),
+                  lambda v: self.s.set("look.cursor_theme", v))
+        spin_row(g, _("Pointer size"), _("Pixels"), 16, 64, 4,
+                 self.s.get("look.cursor_size", 24),
+                 lambda v: self.s.set("look.cursor_size", int(v)))
+
+        g = group(p, _("Dock"),
+                  _("A second bar at the bottom edge showing open windows."))
+        switch_row(g, _("Show the dock"), "",
+                   self.s.get("dock.enabled", False),
+                   lambda v: self.s.set("dock.enabled", v))
+        combo_row(g, _("Edge"), "", ["bottom", "top", "left", "right"],
+                  self.s.get("dock.position", "bottom"),
+                  lambda v: self.s.set("dock.position", v))
+        spin_row(g, _("Icon size"), _("Pixels"), 16, 64, 4,
+                 self.s.get("dock.icon_size", 32),
+                 lambda v: self.s.set("dock.icon_size", int(v)))
+        switch_row(g, _("Let windows tile underneath"),
+                   _("Waybar has no true autohide. This drops the reserved "
+                     "space so the dock floats over your windows instead of "
+                     "pushing them up — it does not slide away."),
+                   self.s.get("dock.autohide", False),
+                   lambda v: self.s.set("dock.autohide", v))
 
         g = group(p, _("Profile"),
                   _("Work is quick and restrained. Showcase is slower with more "
@@ -510,6 +577,190 @@ class Window(Adw.ApplicationWindow):
                    lambda v: self.s.set("input.follow_mouse", 1 if v else 0))
 
         self.add_page(p, "input", _("Input"), "input-mouse-symbolic")
+
+    # -- Sound ---------------------------------------------------------------
+
+    def _page_sound(self):
+        """Live device state, not stored preferences.
+
+        Nothing on this page goes into settings.lua: which speaker is the
+        default is a property of the machine right now, and writing it to a
+        file that syncs to another computer would be actively wrong.
+        """
+        p = page(_("Sound"), "audio-volume-high-symbolic")
+
+        g = group(p, _("Output"), _("Where sound comes out."))
+        sinks = self._audio_devices("sinks", "get-default-sink")
+        if sinks:
+            for name, label, is_default in sinks:
+                row = Adw.ActionRow(title=label,
+                                    subtitle=_("Default") if is_default else "")
+                button = Gtk.Button(label=_("Use this"), valign=Gtk.Align.CENTER)
+                button.set_sensitive(not is_default)
+                button.connect("clicked", self._on_default_sink, name)
+                row.add_suffix(button)
+                g.add(row)
+        else:
+            g.add(Adw.ActionRow(title=_("No output devices found")))
+
+        g = group(p, _("Input"), _("Microphones."))
+        sources = self._audio_devices("sources", "get-default-source")
+        real = [s for s in sources if ".monitor" not in s[0]]
+        if real:
+            for name, label, is_default in real:
+                row = Adw.ActionRow(title=label,
+                                    subtitle=_("Default") if is_default else "")
+                button = Gtk.Button(label=_("Use this"), valign=Gtk.Align.CENTER)
+                button.set_sensitive(not is_default)
+                button.connect("clicked", self._on_default_source, name)
+                row.add_suffix(button)
+                g.add(row)
+        else:
+            g.add(Adw.ActionRow(title=_("No microphones found")))
+
+        g = group(p, _("More"))
+        self._launch_row(g, _("Per-application volume"),
+                         _("Levels for each running program"),
+                         ["pavucontrol"])
+
+        self.add_page(p, "sound", _("Sound"), "audio-volume-high-symbolic")
+
+    def _audio_devices(self, kind: str, default_cmd: str):
+        import json as _json
+        raw = "\n".join(run_lines(["pactl", "-f", "json", "list", kind], timeout=6))
+        try:
+            devices = _json.loads(raw) if raw.strip() else []
+        except ValueError:
+            devices = []
+        default = "".join(run_lines(["pactl", default_cmd], timeout=6))
+        out = []
+        for d in devices:
+            name = d.get("name", "")
+            label = (d.get("description")
+                     or d.get("properties", {}).get("device.description")
+                     or name)
+            out.append((name, label, name == default))
+        return out
+
+    def _on_default_sink(self, _b, name):
+        subprocess.run(["pactl", "set-default-sink", name], check=False)
+        self.toast(_("Output device changed"))
+
+    def _on_default_source(self, _b, name):
+        subprocess.run(["pactl", "set-default-source", name], check=False)
+        self.toast(_("Microphone changed"))
+
+    # -- Network -------------------------------------------------------------
+
+    def _page_network(self):
+        p = page(_("Network"), "network-wireless-symbolic")
+
+        g = group(p, _("Connections"), _("What this machine is connected to."))
+        rows = 0
+        for line in run_lines(["nmcli", "-t", "-f",
+                               "TYPE,STATE,CONNECTION,DEVICE", "device"]):
+            parts = line.split(":")
+            if len(parts) < 4 or parts[0] in ("loopback", "bridge"):
+                continue
+            kind, state, conn, device = parts[0], parts[1], parts[2], parts[3]
+            title = conn or device
+            g.add(Adw.ActionRow(
+                title=title,
+                subtitle=f"{kind} · {device} · {state}"))
+            rows += 1
+        if not rows:
+            g.add(Adw.ActionRow(title=_("NetworkManager is not answering")))
+
+        g = group(p, _("Addresses"))
+        for line in run_lines(["ip", "-brief", "address", "show"]):
+            parts = line.split()
+            if not parts or parts[0] == "lo":
+                continue
+            g.add(Adw.ActionRow(title=parts[0],
+                                subtitle=" ".join(parts[2:]) or _("no address")))
+
+        g = group(p, _("More"))
+        self._launch_row(g, _("Wi-Fi and connection editor"),
+                         _("Add networks, VPNs and static addresses"),
+                         ["nm-connection-editor"])
+
+        self.add_page(p, "network", _("Network"), "network-wireless-symbolic")
+
+    # -- Displays ------------------------------------------------------------
+
+    def _page_displays(self):
+        p = page(_("Displays"), "video-display-symbolic")
+
+        g = group(p, _("Connected displays"),
+                  _("Read from the compositor. Change them in settings.lua "
+                    "under monitors; this page shows what is actually active."))
+        import json as _json
+        raw = "\n".join(run_lines(["hyprctl", "-j", "monitors"]))
+        try:
+            monitors = _json.loads(raw) if raw.strip() else []
+        except ValueError:
+            monitors = []
+        if monitors:
+            for m in monitors:
+                g.add(Adw.ActionRow(
+                    title=f"{m.get('name', '?')} — {m.get('description', '')}".strip(" —"),
+                    subtitle=(f"{m.get('width')}×{m.get('height')} "
+                              f"@ {round(m.get('refreshRate', 0))} Hz · "
+                              f"scale {m.get('scale')} · "
+                              f"at {m.get('x')},{m.get('y')}")))
+        else:
+            g.add(Adw.ActionRow(title=_("No displays reported")))
+
+        self.add_page(p, "displays", _("Displays"), "video-display-symbolic")
+
+    # -- Applications --------------------------------------------------------
+
+    def _page_apps(self):
+        p = page(_("Applications"), "view-grid-symbolic")
+
+        g = group(p, _("Launcher"),
+                  _("A stock system offers dozens of entries that exist only so "
+                    "other software can find a handler — one per image format, "
+                    "certificate prompts, geolocation agents. Hiding them "
+                    "uninstalls nothing."))
+        script = str(REPO / "scripts" / "menu-cleanup.py")
+        hidden = len(run_lines([sys.executable, script, "--list"])) - 1
+        row = Adw.ActionRow(
+            title=_("Hidden entries"),
+            subtitle=_("%d entries are hidden from the launcher") % max(hidden, 0))
+        button = Gtk.Button(label=_("Show them all again"), valign=Gtk.Align.CENTER)
+        button.connect("clicked", self._on_restore_menu)
+        row.add_suffix(button)
+        g.add(row)
+
+        g = group(p, _("More"))
+        self._launch_row(g, _("Installed applications"),
+                         _("Everything with a launcher entry"),
+                         ["rofi", "-show", "drun"])
+
+        self.add_page(p, "apps", _("Applications"), "view-grid-symbolic")
+
+    def _on_restore_menu(self, _b):
+        script = str(REPO / "scripts" / "menu-cleanup.py")
+        subprocess.run([sys.executable, script, "--restore"], check=False)
+        self.toast(_("All entries are visible again"))
+
+    # -- shared --------------------------------------------------------------
+
+    def _launch_row(self, g, title, subtitle, cmd):
+        row = Adw.ActionRow(title=title, subtitle=subtitle)
+        button = Gtk.Button(label=_("Open"), valign=Gtk.Align.CENTER)
+        button.connect("clicked", lambda _b: self._spawn(cmd))
+        row.add_suffix(button)
+        g.add(row)
+        return row
+
+    def _spawn(self, cmd):
+        try:
+            Gio.Subprocess.new(cmd, Gio.SubprocessFlags.NONE)
+        except GLib.Error as exc:
+            self.toast(_("Could not start %s") % cmd[0])
+            print(exc, file=sys.stderr)
 
     def _page_power(self):
         p = page(_("Power"), "preferences-system-power-symbolic")
