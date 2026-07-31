@@ -55,6 +55,11 @@ return {
     -- Theme
     -- =====================================================================
     theme = {
+        -- Derive the whole palette from the current wallpaper, and follow it
+        -- on every change including the slideshow. Off by default: a fixed
+        -- family stays put, which is what most people want most of the time.
+        -- Needs matugen (COPR solopasha/hyprland, same repo as Hyprland).
+        from_wallpaper = false,
         flavour = "mocha",     -- mocha | macchiato | frappe | latte
         accent  = "mauve",     -- any Catppuccin colour name
     },

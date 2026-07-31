@@ -64,6 +64,31 @@ apply_to() {
         --transition-fps 60)
     [[ -n "$monitor" ]] && args+=(--outputs "$monitor")
     swww "${args[@]}" >/dev/null
+
+    # Only once per change, not once per monitor: with three screens this would
+    # otherwise re-render every config three times and reload the bar three
+    # times for one picture.
+    [[ -z "$monitor" ]] && recolour_from "$file"
+}
+
+recolour_from() {
+    # Derive the palette from the picture and re-render everything — but only
+    # when the user asked for it. Off by default; a fixed family stays fixed.
+    [[ "$(get theme.from_wallpaper)" == "True" ]] || return 0
+    command -v matugen >/dev/null 2>&1 || return 0
+
+    # A slideshow fires this on a timer, and a click in the wallpaper picker can
+    # fire it three times in a second. One at a time, and never a queue: if a
+    # recolour is already running, the picture that started it is already the
+    # one on screen by the time it finishes.
+    local lock="${XDG_RUNTIME_DIR:-/tmp}/buchhwin-recolour.lock"
+    exec 9>"$lock"
+    flock -n 9 || return 0
+
+    python3 "$REPO/scripts/palette-from-wallpaper.py" "$1" >/dev/null 2>&1 || return 0
+    set_ theme.flavour=wallpaper
+    python3 "$REPO/theme/apply-theme.py" --flavour wallpaper >/dev/null 2>&1
+    hyprctl reload >/dev/null 2>&1 || true
 }
 
 monitors() {

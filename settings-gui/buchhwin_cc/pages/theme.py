@@ -9,6 +9,7 @@ without importing the window back and creating a cycle.
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -64,6 +65,17 @@ def build(win):
     row.add_suffix(btn)
     g.add(row)
 
+    g2 = group(p, _("From the wallpaper"),
+               _("Derive the whole palette from the picture on your desktop. "
+                 "Every change follows, the slideshow included. The named "
+                 "colours keep their identity — red stays red — and take their "
+                 "vividness from the image, so error messages and syntax "
+                 "highlighting stay readable."))
+    switch_row(g2, _("Colours follow the wallpaper"),
+               _("Needs matugen") if not _have_matugen() else "",
+               win.s.get("theme.from_wallpaper", False),
+               lambda v: win.s.set("theme.from_wallpaper", v))
+
     g2 = group(p, _("Wallpaper"), "")
     switch_row(g2, _("Wallpaper follows the flavour"),
                _("Switching to Latte also picks a light wallpaper"),
@@ -71,6 +83,10 @@ def build(win):
                lambda v: win.s.set("wallpaper.follow_theme", v))
 
     win.add_page(p, "theme", _("Theme"), "applications-graphics-symbolic")
+
+
+def _have_matugen() -> bool:
+    return shutil.which("matugen") is not None
 
 
 def _add_variant_rows(win, g, family: str, flavour: str) -> None:

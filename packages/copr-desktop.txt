@@ -15,3 +15,7 @@ satty                           # screenshot annotation
 
 # --- erikreider/SwayNotificationCenter --------------------------------------
 SwayNotificationCenter          # notification daemon + control centre panel
+
+# Material You colour extraction, used when the palette follows the
+# wallpaper. Same COPR as Hyprland itself, so no extra repository.
+matugen
