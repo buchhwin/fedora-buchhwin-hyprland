@@ -49,6 +49,7 @@ window#waybar.hidden { opacity: 0.2; }
 #battery,
 #clock,
 #custom-notifications,
+#custom-settings,
 #custom-power {
     background-color: @pillbg;
     padding: 0 12px;
@@ -108,10 +109,12 @@ window#waybar.empty #window { background-color: transparent; }
 #battery    { color: @lavender; }
 #clock      { color: @accent; font-weight: 600; }
 #custom-notifications { color: @flamingo; }
+#custom-settings { color: @sapphire; }
 #custom-power { color: @red; }
 
 #pulseaudio:hover, #bluetooth:hover, #network:hover, #cpu:hover, #memory:hover,
-#battery:hover, #clock:hover, #custom-notifications:hover, #custom-power:hover {
+#battery:hover, #clock:hover, #custom-notifications:hover,
+#custom-settings:hover, #custom-power:hover {
     background-color: @pillhover;
 }
 

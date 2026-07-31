@@ -55,6 +55,39 @@ phase_dotfiles() {
     run mkdir -p "$BIN_HOME"
     run ln -sfn "$REPO_DIR/bin/bhctl" "$BIN_HOME/bhctl"
 
+    # The settings window, by the name its desktop entry uses. Without this the
+    # entry says Exec=buchhwin-control-center and nothing on PATH answers to
+    # that, so clicking Settings in the launcher failed with a file-not-found
+    # error — while the application itself worked perfectly when started by its
+    # full path. One missing symlink made the whole settings app look absent.
+    run ln -sfn "$REPO_DIR/settings-gui/buchhwin-control-center" \
+                "$BIN_HOME/buchhwin-control-center"
+
+    # --- login shell ---------------------------------------------------------
+    # Lives here, not in the base phase, because the base phase is skipped by
+    # every configuration-only run — and then the shell quietly stayed bash.
+    #
+    # Plain `chsh` makes the account authenticate to itself, which fails
+    # outright when the account has no password (cloud images, and every test
+    # VM). Go through sudo, which the installer relies on everywhere else, and
+    # keep bare chsh as the fallback for when sudo is what is missing.
+    step "$(msg step_shell)"
+    local current_shell
+    current_shell="$(getent passwd "$USER" | cut -d: -f7)"
+    if [[ "$current_shell" == *zsh ]]; then
+        info "$(msg info_shell_already)"
+    elif [[ ! -x /usr/bin/zsh ]]; then
+        warn "$(msg warn_chsh)"
+    elif (( DRY_RUN )); then
+        printf '     %s[dry-run]%s chsh -s /usr/bin/zsh\n' "$C_DIM" "$C_RESET"
+    elif sudo -n chsh -s /usr/bin/zsh "$USER" 2>/dev/null \
+         || sudo chsh -s /usr/bin/zsh "$USER" 2>/dev/null \
+         || chsh -s /usr/bin/zsh; then
+        ok "$(msg ok_shell)"
+    else
+        warn "$(msg warn_chsh)"
+    fi
+
     # The bar popups. Waybar calls them by their path inside the checkout, so
     # there is nothing to link — but a tarball download or a stray umask can
     # arrive without the executable bit, and then clicking the clock silently

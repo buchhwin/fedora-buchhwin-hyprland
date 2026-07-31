@@ -68,6 +68,9 @@ qt6ct
 qt6-qtwayland
 kvantum
 papirus-icon-theme
+# KDE's Breeze pointer. Ships two themes: breeze_cursors (dark) and
+# Breeze_Light — there is no "Breeze_Dark", however much it sounds like it.
+breeze-cursor-theme
 
 # --- fonts ------------------------------------------------------------------
 # JetBrainsMono *Nerd Font* is not packaged; the plain family is, and

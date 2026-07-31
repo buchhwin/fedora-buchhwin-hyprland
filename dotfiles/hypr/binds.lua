@@ -39,6 +39,10 @@ local tokens = {
     floatws       = SCRIPTS .. "/toggle-floating-workspace.sh",
     wallnext      = SCRIPTS .. "/wallpaper.sh next",
     reload        = SCRIPTS .. "/reload.sh",
+    -- Search everything: applications, running windows, files, and a
+    -- calculator. rofi already ships the modes; scripts/search.sh only wires
+    -- them together and adds a plocate-backed file mode.
+    search        = SCRIPTS .. "/search.sh",
     -- Root file manager: pkexec so the polkit agent asks properly, and a
     -- distinct window class so rules.lua can mark it red. Running a whole GUI
     -- as root is a blunt instrument, but it is the honest one for the job.
@@ -102,23 +106,26 @@ for key, dir in pairs(letters) do
     hl.bind("SUPER + SHIFT + " .. key, hl.dsp.window.move({ direction = dir }))
 end
 
--- The ARROW keys do double duty, and that is deliberate:
---   tiled window    -> move focus, exactly as before
---   floating window -> snap to half / maximize / restore, like Windows
--- scripts/snap.py decides which, by looking at the window. So a tiling
--- workspace keeps its behaviour and a floating one feels like Windows, with
--- the same keys and nothing to remember.
-for _, dir in ipairs({ "left", "right", "up", "down" }) do
-    hl.bind("SUPER + " .. dir, hl.dsp.exec_cmd(tokens.snap .. " smart-" .. dir))
+-- The ARROW keys MOVE the window. Chosen by the user over the previous
+-- arrangement, where they snapped like Windows — moving is the thing you reach
+-- for most often, so it gets the plainest key.
+local arrows = { "left", "right", "up", "down" }
+for _, dir in ipairs(arrows) do
+    hl.bind("SUPER + " .. dir, hl.dsp.window.move({ direction = dir }))
 end
 
--- Quarters, and the plain halves without the smart detour.
+-- Snapping keeps the Windows behaviour, one modifier along: throw the window
+-- at an edge and it takes that half, up maximizes, down restores. snap.py
+-- still decides tiled-vs-floating, so a tiling workspace is not disturbed.
+for _, dir in ipairs(arrows) do
+    hl.bind("SUPER + CTRL + " .. dir, hl.dsp.exec_cmd(tokens.snap .. " smart-" .. dir))
+end
+
+-- Quarters on SHIFT.
 hl.bind("SUPER + SHIFT + Left",  hl.dsp.exec_cmd(tokens.snap .. " top-left"))
 hl.bind("SUPER + SHIFT + Right", hl.dsp.exec_cmd(tokens.snap .. " top-right"))
 hl.bind("SUPER + SHIFT + Down",  hl.dsp.exec_cmd(tokens.snap .. " bottom-left"))
 hl.bind("SUPER + SHIFT + Up",    hl.dsp.exec_cmd(tokens.snap .. " maximize"))
-hl.bind("SUPER + CTRL + Left",   hl.dsp.exec_cmd(tokens.snap .. " left"))
-hl.bind("SUPER + CTRL + Right",  hl.dsp.exec_cmd(tokens.snap .. " right"))
 
 -- Turn the current workspace into a floating one and back.
 hl.bind("SUPER + SHIFT + Space", hl.dsp.exec_cmd(tokens.floatws))
@@ -131,10 +138,15 @@ hl.bind("SUPER + CTRL + k", hl.dsp.window.resize({ x = 0, y = -60 }), { repeatin
 hl.bind("SUPER + CTRL + j", hl.dsp.window.resize({ x = 0, y =  60 }), { repeating = true })
 
 -- workspaces
+--
+-- SUPER+ALT+number is the one the user asked for; SUPER+SHIFT+number stays
+-- because it is what every other tiling setup uses and muscle memory from
+-- elsewhere should not break here.
 for i = 1, 10 do
     local key = i % 10
     hl.bind("SUPER + " .. key,         hl.dsp.focus({ workspace = i }))
     hl.bind("SUPER + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+    hl.bind("SUPER + ALT + " .. key,   hl.dsp.window.move({ workspace = i }))
 end
 hl.bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind("SUPER + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))

@@ -50,14 +50,16 @@ for _, id in ipairs(layout.floating_workspaces or {}) do
     hl.workspace_rule({ workspace = tostring(id), default_float = true })
 end
 
--- Smart gaps: a single tiled window gets the whole screen. Nice on a laptop,
--- and it makes screenshots of one window look deliberate rather than cropped.
-hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
+-- Smart gaps: a single tiled window gets nearly the whole screen — but not
+-- quite. A window flush against the screen edge reads as broken rather than as
+-- roomy, and it loses the rounded corners that hold the whole look together.
+-- So the gap shrinks instead of vanishing, and the border stays.
+--
+-- Truly edge-to-edge is what FULLSCREEN is for, and that still has no gap at
+-- all, which is the point of pressing it.
+local gaps_single = look.gaps_single or 4
+hl.workspace_rule({ workspace = "w[tv1]", gaps_out = gaps_single, gaps_in = gaps_single })
 hl.workspace_rule({ workspace = "f[1]",   gaps_out = 0, gaps_in = 0 })
-hl.window_rule({
-    name = "no-gaps-single", match = { float = false, workspace = "w[tv1]" },
-    border_size = 0, rounding = 0,
-})
 hl.window_rule({
     name = "no-gaps-fullscreen", match = { float = false, workspace = "f[1]" },
     border_size = 0, rounding = 0,

@@ -41,31 +41,11 @@ phase_base() {
     mapfile -t core_copr < <(read_list "$REPO_DIR/packages/copr-core.txt")
     dnf_install "${core_copr[@]}"
 
-    # --- zsh -----------------------------------------------------------------
-    # Fedora packages both zsh plugins, so nothing is cloned from GitHub any
-    # more; they are updated by dnf like everything else.
-    step "$(msg step_shell)"
-    if [[ "$SHELL" == *zsh ]]; then
-        info "$(msg info_shell_already)"
-    elif (( DRY_RUN )); then
-        printf '     %s[dry-run]%s chsh -s /usr/bin/zsh\n' "$C_DIM" "$C_RESET"
-    else
-        # Done here, early, and not as the very last action of the whole run —
-        # the password prompt should arrive while the user is still watching.
-        #
-        # Plain `chsh` makes the account authenticate to itself, which fails
-        # outright when the account has no password (cloud images, and every
-        # test VM). Go through sudo, which the installer already relies on
-        # everywhere else, and keep bare chsh as the fallback for the case
-        # where sudo is the thing that is not available.
-        if sudo -n chsh -s /usr/bin/zsh "$USER" 2>/dev/null \
-           || sudo chsh -s /usr/bin/zsh "$USER" 2>/dev/null \
-           || chsh -s /usr/bin/zsh; then
-            ok "$(msg ok_shell)"
-        else
-            warn "$(msg warn_chsh)"
-        fi
-    fi
+    # zsh itself is installed above; making it the LOGIN SHELL happens in the
+    # dotfiles phase. It belongs with the configuration, not with the packages:
+    # this phase is skipped by every config-only run (--skip base), and the
+    # shell would then silently stay bash forever on any machine built from a
+    # pre-baked image.
 
     # --- XDG user directories -----------------------------------------------
     run_quiet xdg-user-dirs-update || true

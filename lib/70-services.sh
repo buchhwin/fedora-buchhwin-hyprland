@@ -186,6 +186,13 @@ RestartSec=2
 [Install]
 WantedBy=graphical-session.target'
 
+    # --- the launcher --------------------------------------------------------
+    # A stock desktop offers ~50 menu entries that exist so other software can
+    # find a handler — krita alone ships one per image format. A launcher full
+    # of those is one nobody trusts. Nothing is uninstalled; see the script.
+    step "$(msg step_menu_cleanup)"
+    run python3 "$REPO_DIR/scripts/menu-cleanup.py" || warn "$(msg warn_menu_cleanup)"
+
     # --- wallpaper + drives --------------------------------------------------
     # Both generate their own units from settings.lua, so the timer interval and
     # the drive list can never drift from what is configured.

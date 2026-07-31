@@ -19,6 +19,9 @@ Placeholders
     {{flavour}} {{accent_name}}       plain strings
     {{is_dark}}                       "true" or "false"
     {{gtk_scheme}}                    "prefer-dark" or "default"
+    {{cursor_theme}} {{cursor_size}}  from settings.lua, not from the palette —
+                                      the pointer is chosen by name and must
+                                      survive a flavour switch
 
 Anything that is not a known placeholder is left untouched, so a template can
 contain literal braces without being mangled.
@@ -67,6 +70,29 @@ def expand_path(raw: str) -> Path:
     )
 
 
+def user_setting(key: str, fallback: str) -> str:
+    """Read one value out of settings.lua, or fall back.
+
+    The cursor is the one part of the look the user picks by name rather than
+    deriving from the palette, so it has to come from settings.lua — otherwise
+    a theme switch would silently reset it. scripts/settings.py already knows
+    how to read that file; there is no second parser here.
+    """
+    script = Path(__file__).resolve().parent.parent / "scripts" / "settings.py"
+    if not script.exists():
+        return fallback
+    try:
+        out = subprocess.run([sys.executable, str(script), "get", key],
+                             capture_output=True, text=True, check=False,
+                             timeout=10).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        return fallback
+    # settings.py prints "not found: ..." to stdout when there is no file yet.
+    if not out or out.startswith("not found") or out == "None":
+        return fallback
+    return out
+
+
 def build_context(palette: dict, accent: str) -> dict:
     colors = palette["colors"]
     if accent not in colors:
@@ -78,6 +104,8 @@ def build_context(palette: dict, accent: str) -> dict:
         "accent_name": accent,
         "is_dark": "true" if palette["dark"] else "false",
         "gtk_scheme": "prefer-dark" if palette["dark"] else "default",
+        "cursor_theme": user_setting("look.cursor_theme", "breeze_cursors"),
+        "cursor_size": user_setting("look.cursor_size", "24"),
     }
     return ctx
 
@@ -162,8 +190,8 @@ def apply_gsettings(ctx: dict) -> None:
             if meta["is_dark"] == "true" else "adw-gtk3"),
         ("org.gnome.desktop.interface", "icon-theme", "Papirus-Dark"
             if meta["is_dark"] == "true" else "Papirus-Light"),
-        ("org.gnome.desktop.interface", "cursor-theme",
-            f"catppuccin-{meta['flavour']}-{'dark' if meta['is_dark'] == 'true' else 'light'}-cursors"),
+        ("org.gnome.desktop.interface", "cursor-theme", meta["cursor_theme"]),
+        ("org.gnome.desktop.interface", "cursor-size", meta["cursor_size"]),
         ("org.gnome.desktop.interface", "font-name", "Inter 11"),
         ("org.gnome.desktop.interface", "monospace-font-name", "JetBrainsMono Nerd Font 11"),
     ]

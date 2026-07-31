@@ -18,6 +18,18 @@ return {
         gaps_out          = 12,
         rounding          = 12,
 
+        -- Gap when only ONE window is open. Small rather than zero: flush
+        -- against the screen edge looks broken, not roomy. Fullscreen still
+        -- has no gap at all — that is what fullscreen is for.
+        gaps_single       = 4,
+
+        -- Mouse pointer. Any theme under /usr/share/icons with a cursors/
+        -- directory works. breeze_cursors is KDE's dark Breeze — the package
+        -- ships exactly two, "breeze_cursors" and "Breeze_Light", so the dark
+        -- one is the unsuffixed name and not "Breeze_Dark".
+        cursor_theme      = "breeze_cursors",
+        cursor_size       = 24,
+
         -- Transparency: visible, but text stays fully legible everywhere.
         -- The focused window is never transparent — you read that one.
         active_opacity    = 1.00,
@@ -148,20 +160,25 @@ return {
         { key = "SUPER + odiaeresis",   action = "dispatch", arg = "scratchpad",    desc = "Drop-down terminal" },
         { key = "SUPER + SHIFT + odiaeresis", action = "dispatch", arg = "to_scratchpad", desc = "Move window to scratchpad" },
 
-        -- Window snapping, Windows style. The arrow keys move focus on a tiled
-        -- window and snap on a floating one — scripts/snap.py decides, so the
-        -- same keys work in both modes. Listed here so they show up in the
-        -- cheat sheet and in the settings; the bindings themselves live in
-        -- binds.lua because they are structural.
-        { key = "SUPER + Left",         action = "info", arg = "@snap smart-left",  desc = "Focus left / snap to the left half" },
-        { key = "SUPER + Right",        action = "info", arg = "@snap smart-right", desc = "Focus right / snap to the right half" },
-        { key = "SUPER + Up",           action = "info", arg = "@snap smart-up",    desc = "Focus up / maximize" },
-        { key = "SUPER + Down",         action = "info", arg = "@snap smart-down",  desc = "Focus down / restore" },
-        { key = "SUPER + CTRL + Left",  action = "info", arg = "@snap left",        desc = "Always: left half" },
-        { key = "SUPER + CTRL + Right", action = "info", arg = "@snap right",       desc = "Always: right half" },
+        { key = "ALT + F4",             action = "dispatch", arg = "close",         desc = "Close window" },
+        { key = "ALT + Space",          action = "exec",     arg = "@search",       desc = "Search everything" },
+
+        -- Arrows MOVE the window; snapping is one modifier along. Listed here
+        -- so they appear in the cheat sheet and the settings app; the bindings
+        -- themselves live in binds.lua because they are structural.
+        { key = "SUPER + Left",         action = "info", arg = "move left",         desc = "Move window left" },
+        { key = "SUPER + Right",        action = "info", arg = "move right",        desc = "Move window right" },
+        { key = "SUPER + Up",           action = "info", arg = "move up",           desc = "Move window up" },
+        { key = "SUPER + Down",         action = "info", arg = "move down",         desc = "Move window down" },
+        { key = "SUPER + CTRL + Left",  action = "info", arg = "@snap smart-left",  desc = "Snap: left half" },
+        { key = "SUPER + CTRL + Right", action = "info", arg = "@snap smart-right", desc = "Snap: right half" },
+        { key = "SUPER + CTRL + Up",    action = "info", arg = "@snap smart-up",    desc = "Snap: maximize" },
+        { key = "SUPER + CTRL + Down",  action = "info", arg = "@snap smart-down",  desc = "Snap: restore" },
         { key = "SUPER + SHIFT + Left", action = "info", arg = "@snap top-left",    desc = "Quarter: top left" },
         { key = "SUPER + SHIFT + Right",action = "info", arg = "@snap top-right",   desc = "Quarter: top right" },
         { key = "SUPER + SHIFT + Down", action = "info", arg = "@snap bottom-left", desc = "Quarter: bottom left" },
+        { key = "SUPER + SHIFT + Up",   action = "info", arg = "@snap maximize",    desc = "Quarter: maximize" },
+        { key = "SUPER + ALT + 1…9",    action = "info", arg = "move to workspace", desc = "Move window to a workspace" },
         { key = "SUPER + SHIFT + Space",action = "info", arg = "@floatws",          desc = "Workspace: tiling / floating" },
     },
 

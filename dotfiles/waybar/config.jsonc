@@ -22,7 +22,7 @@
     // is also where Windows keeps it.
     "modules-right":  ["tray", "custom/recording", "custom/drives",
                        "pulseaudio", "network", "battery", "clock",
-                       "custom/notifications", "custom/power"],
+                       "custom/notifications", "custom/settings", "custom/power"],
 
     // One bar per screen, and each shows only its own workspaces. Without
     // all-outputs:false every screen shows every workspace, which defeats the
@@ -37,7 +37,10 @@
 
     "hyprland/workspaces": {
         "all-outputs": false,
-        "format": "{icon}",
+        // Number AND icon. The icon alone looked tidy but answered the wrong
+        // question: you can see what a workspace is FOR without being able to
+        // tell WHICH one you are on, and the keys are numbers.
+        "format": "{id} {icon}",
         "format-icons": {
             "term": "󰆍", "web": "󰈹", "code": "󰨞", "mon": "󰍹", "chat": "󰭹",
             "default": "", "active": "", "urgent": ""
@@ -172,6 +175,15 @@
         "interval": 30,
         "on-click": "nemo ~/Drives",
         "escape": false
+    },
+
+    // Settings is where everything is configured, so it gets a permanent seat
+    // rather than living only in the launcher — which is exactly how it stayed
+    // undiscovered while it was also broken.
+    "custom/settings": {
+        "format": "󰒓",
+        "tooltip-format": "Settings",
+        "on-click": "buchhwin-control-center"
     },
 
     "custom/notifications": {

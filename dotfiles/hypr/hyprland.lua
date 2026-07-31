@@ -65,9 +65,15 @@ hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" 
 ------------------------------------------------------------------------------
 -- Environment
 ------------------------------------------------------------------------------
-hl.env("XCURSOR_SIZE", "24")
-hl.env("HYPRCURSOR_SIZE", "24")
-hl.env("XCURSOR_THEME", "catppuccin-" .. ((S.theme or {}).flavour or "mocha") .. "-dark-cursors")
+-- The pointer is settable, because it is the one piece of the look you stare
+-- at all day. Default is KDE's dark Breeze: the package ships exactly two
+-- themes, "breeze_cursors" and "Breeze_Light", so the dark one is the plain
+-- name — there is no "Breeze_Dark", however much it looks like there should be.
+local cursor_size  = tostring(look.cursor_size or 24)
+local cursor_theme = look.cursor_theme or "breeze_cursors"
+hl.env("XCURSOR_SIZE", cursor_size)
+hl.env("HYPRCURSOR_SIZE", cursor_size)
+hl.env("XCURSOR_THEME", cursor_theme)
 
 ------------------------------------------------------------------------------
 -- Look and feel
