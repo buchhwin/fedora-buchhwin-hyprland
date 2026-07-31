@@ -212,6 +212,75 @@ def reload_apps(changed: set[str]) -> None:
         run("kitten", "@", "--to", "unix:/tmp/kitty", "load-config")
     if "gtk" in changed and have("gsettings"):
         pass  # handled below, needs the palette metadata
+    if "bat" in changed and have("bat"):
+        # bat reads themes from a binary cache, not from the .tmTheme file, so
+        # writing the file alone changes nothing at all.
+        run("bat", "cache", "--build")
+    if "vscode" in changed:
+        merge_vscode()
+    if "brave" in changed:
+        merge_brave()
+
+
+def _merge_json(path: Path, updates: dict) -> None:
+    """Merge keys into a JSON file, keeping everything already in it.
+
+    These two files belong to the applications, not to us. Overwriting them
+    would throw away every preference the user has set — which is exactly the
+    kind of "theming" that makes people uninstall a theme.
+    """
+    data = {}
+    if path.exists():
+        try:
+            data = json.loads(path.read_text() or "{}")
+        except (OSError, json.JSONDecodeError):
+            return                      # unreadable: leave it entirely alone
+    if not isinstance(data, dict):
+        return
+    for key, value in updates.items():
+        if isinstance(value, dict) and isinstance(data.get(key), dict):
+            data[key].update(value)
+        else:
+            data[key] = value
+    with contextlib.suppress(OSError):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def merge_vscode() -> None:
+    source = STATE_DIR / "vscode-colors.json"
+    target = CONFIG_HOME / "Code" / "User" / "settings.json"
+    if not source.exists() or not target.parent.parent.exists():
+        return                          # VS Code not installed: nothing to do
+    try:
+        wanted = json.loads(source.read_text())
+    except (OSError, json.JSONDecodeError):
+        return
+    wanted.pop("//", None)
+    wanted.pop("//2", None)
+    _merge_json(target, wanted)
+
+
+def merge_brave() -> None:
+    """Brave's frame colour lives in Local State, as decimal RGB."""
+    source = STATE_DIR / "brave-theme.txt"
+    target = (CONFIG_HOME / "BraveSoftware" / "Brave-Browser" / "Local State")
+    if not source.exists() or not target.exists():
+        return
+    values = {}
+    try:
+        for line in source.read_text().splitlines():
+            if "=" in line and not line.startswith("#"):
+                key, hex6 = line.split("=", 1)
+                values[key.strip()] = hex6.strip()
+    except OSError:
+        return
+    frame = values.get("frame")
+    if not frame or len(frame) != 6:
+        return
+    rgb = [int(frame[i:i + 2], 16) for i in (0, 2, 4)]
+    _merge_json(target, {"brave": {"theme": {"user_color_scheme": 1},
+                                   "custom_theme_color": rgb}})
 
 
 def apply_cursor(ctx: dict, dry_run: bool = False) -> None:

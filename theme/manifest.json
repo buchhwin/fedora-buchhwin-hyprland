@@ -93,6 +93,51 @@
       "template": "qt-colors.conf.tmpl",
       "target": "$CONFIG/qt6ct/colors/catppuccin.conf",
       "group": "qt"
+    },
+    {
+      "template": "shell-colors.sh.tmpl",
+      "target": "$CONFIG/buchhwin/shell-colors.sh",
+      "group": "shell"
+    },
+    {
+      "template": "bat-theme.tmTheme.tmpl",
+      "target": "$CONFIG/bat/themes/buchhwin.tmTheme",
+      "group": "bat"
+    },
+    {
+      "template": "lazygit.yml.tmpl",
+      "target": "$CONFIG/lazygit/config.yml",
+      "group": "misc"
+    },
+    {
+      "template": "zellij-theme.kdl.tmpl",
+      "target": "$CONFIG/zellij/config.kdl",
+      "group": "misc"
+    },
+    {
+      "template": "tmux-colors.conf.tmpl",
+      "target": "$CONFIG/buchhwin/tmux-colors.conf",
+      "group": "misc"
+    },
+    {
+      "template": "delta-colors.gitconfig.tmpl",
+      "target": "$CONFIG/buchhwin/delta-colors.gitconfig",
+      "group": "misc"
+    },
+    {
+      "template": "atuin-theme.toml.tmpl",
+      "target": "$CONFIG/atuin/themes/buchhwin.toml",
+      "group": "misc"
+    },
+    {
+      "template": "vscode-colors.json.tmpl",
+      "target": "$STATE/vscode-colors.json",
+      "group": "vscode"
+    },
+    {
+      "template": "brave-theme.txt.tmpl",
+      "target": "$STATE/brave-theme.txt",
+      "group": "brave"
     }
   ]
 }

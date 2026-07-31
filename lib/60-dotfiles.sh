@@ -13,6 +13,20 @@
 #   generated  -> written by apply-theme.py, ignored by git, machine-local
 #   seeded     -> copied once, then owned by the user / the settings GUI
 
+_append_once() {
+    # Append a line to a file we do not own, exactly once. The marker line goes
+    # first so the file says who added it and why.
+    local file="$1" line="$2" marker="$3"
+    if (( DRY_RUN )); then
+        printf '     %s[dry-run]%s ensure %s in %s\n' "$C_DIM" "$C_RESET" "$line" "$file"
+        return 0
+    fi
+    mkdir -p "$(dirname "$file")"
+    [[ -f "$file" ]] || : >"$file"
+    grep -qxF "$line" "$file" && return 0
+    printf '\n%s\n%s\n' "$marker" "$line" >>"$file"
+}
+
 phase_dotfiles() {
     section "$(msg sec_dotfiles)"
 
@@ -101,6 +115,19 @@ phase_dotfiles() {
   *":$HOME/.local/bin:"*) ;;
   *) export PATH="$HOME/.local/bin:$PATH" ;;
 esac'
+
+    # --- generated colours, wired into files we do not own --------------------
+    # tmux and git keep their own config in the home directory, and those
+    # belong to the user. So instead of writing them, one line is APPENDED once
+    # that pulls in the generated colours — idempotent, and removable by
+    # deleting that one line.
+    step "$(msg step_colour_includes)"
+    _append_once "$HOME/.tmux.conf" \
+        "source-file ~/.config/buchhwin/tmux-colors.conf" \
+        "# buchhwin: colours follow the palette"
+    _append_once "$CONFIG_HOME/git/config" \
+        "	path = ~/.config/buchhwin/delta-colors.gitconfig" \
+        "[include]"
 
     # --- desktop entries -----------------------------------------------------
     run mkdir -p "$DATA_HOME/applications"

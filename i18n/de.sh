@@ -95,6 +95,7 @@ declare -gA MSG=(
     [ok_cursors]="Mauszeiger-Thema installiert"
     [step_icons]="Symbole werden installiert und eingefärbt"
     [note_family_extras]="Fuer %s gibt es keine fertigen Zeiger-, Ordner-, Kvantum- und SDDM-Pakete — alle erzeugten Dateien sind getheme, diese vier Zugaben entfallen"
+    [step_colour_includes]="Erzeugte Farben in tmux und git einbinden"
     [warn_icons]="Das Symbol-Thema konnte nicht eingefärbt werden"
     [step_kvantum]="Qt-Thema (Kvantum) wird installiert"
     [warn_kvantum]="Kvantum-Thema %s nicht gefunden"

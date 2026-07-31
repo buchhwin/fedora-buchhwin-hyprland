@@ -106,6 +106,7 @@ declare -gA MSG=(
     [ok_cursors]="Cursor theme installed"
     [step_icons]="Installing and recolouring icons"
     [note_family_extras]="%s has no upstream cursor, folder, Kvantum or SDDM artefacts — every generated file is themed, those four extras are skipped"
+    [step_colour_includes]="Wiring the generated colours into tmux and git"
     [warn_icons]="The icon theme could not be recoloured"
     [step_kvantum]="Installing the Qt (Kvantum) theme"
     [warn_kvantum]="Kvantum theme %s not found"

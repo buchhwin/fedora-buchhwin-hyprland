@@ -93,14 +93,14 @@ command -v atuin >/dev/null && eval "$(atuin init zsh --disable-up-arrow)"
 
 if command -v fzf >/dev/null; then
     source <(fzf --zsh) 2>/dev/null
-    export FZF_DEFAULT_OPTS="
-      --height 45% --layout=reverse --border=rounded --info=inline
-      --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8
-      --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc
-      --color=marker:#b4befe,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8
-      --color=border:#6c7086"
     command -v fd >/dev/null && export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
 fi
+
+# Colours for fzf, bat and eza. Generated from the active palette, so the shell
+# follows a theme switch instead of staying on the Mocha hex values that used
+# to be written out here by hand.
+[[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/buchhwin/shell-colors.sh" ]] \
+    && source "${XDG_CONFIG_HOME:-$HOME/.config}/buchhwin/shell-colors.sh"
 
 # ---------------------------------------------------------------------------
 # Aliases
@@ -115,7 +115,9 @@ else
     alias la='ls -lha --color=auto'
 fi
 
-command -v bat >/dev/null && { alias cat='bat --paging=never'; export BAT_THEME="Catppuccin Mocha"; }
+# BAT_THEME comes from shell-colors.sh above. It used to say "Catppuccin Mocha"
+# — a theme that was never installed, so bat warned on every call.
+command -v bat >/dev/null && alias cat='bat --paging=never' 
 command -v fd  >/dev/null && alias find='fd'
 command -v rg  >/dev/null && alias grep='rg'
 command -v duf >/dev/null && alias df='duf'
