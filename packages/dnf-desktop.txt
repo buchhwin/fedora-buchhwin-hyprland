@@ -110,3 +110,7 @@ fastfetch
 # WireGuard. NetworkManager speaks the protocol natively; these are the
 # userspace tools for `wg show` and for generating keys.
 wireguard-tools
+
+# Audio visualiser for the bar's cava module. Optional in the sense that the
+# module is off unless the settings turn it on, but it is cheap to have.
+cava

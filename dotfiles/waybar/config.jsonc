@@ -13,7 +13,7 @@
     "spacing": 6,
 
     "modules-left":   ["custom/logo", "hyprland/workspaces", "hyprland/submap"],
-    "modules-center": ["hyprland/window"],
+    "modules-center": ["hyprland/window", "mpris"],
     // The right-hand side is a status area, not a dashboard. Four things you
     // act on — sound, network, battery, clock — each with a popup behind it,
     // the way Windows does it. cpu/memory/temperature used to sit here and are
@@ -79,6 +79,37 @@
             "(.*) — Nemo": "󰉋 $1",
             "^$": "󰇄 Desktop"
         }
+    },
+
+    // Only visible while something is playing. Clicking opens the media popup;
+    // the click actions here are the ones people expect from a title in a bar.
+    "mpris": {
+        "format": "{player_icon} {dynamic}",
+        "format-paused": "{status_icon} {dynamic}",
+        "dynamic-len": 38,
+        "dynamic-order": ["title", "artist"],
+        "player-icons": { "default": "󰎈", "mpv": "󰐹", "firefox": "󰈹" },
+        "status-icons": { "paused": "󰏤" },
+        "ignored-players": ["firefox"],
+        "on-click": "~/.local/share/fedora-buchhwin-hyprland/panel/buchhwin-panel media",
+        "on-click-middle": "playerctl play-pause",
+        "on-scroll-up": "playerctl next",
+        "on-scroll-down": "playerctl previous"
+    },
+
+    // The audio visualiser. Not in modules-* by default — it is lovely and it
+    // wakes the CPU sixty times a second, which on a laptop is a real cost. Add
+    // "cava" to a module list to switch it on.
+    "cava": {
+        "framerate": 30,
+        "autosens": 1,
+        "bars": 12,
+        "method": "pipewire",
+        "source": "auto",
+        "stereo": true,
+        "bar_delimiter": 0,
+        "format-icons": ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"],
+        "actions": { "on-click-right": "mode" }
     },
 
     "tray": { "icon-size": 16, "spacing": 8 },

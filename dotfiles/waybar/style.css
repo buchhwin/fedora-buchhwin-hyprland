@@ -233,3 +233,11 @@ tooltip label { color: @text; padding: 4px; }
 #custom-updates { color: @green; }
 #power-profiles-daemon { color: @yellow; }
 #custom-updates:hover, #power-profiles-daemon:hover { background-color: @pillhover; }
+
+/* MPRIS sits in the middle next to the window title; no pill, because the
+ * title next to it has none either and two boxes there would look busy. */
+#mpris { color: @accent; padding: 0 10px; background-color: transparent; }
+#mpris.paused { color: @overlay1; }
+
+#cava { color: @accent; padding: 0 10px; background-color: @pillbg;
+        margin: 5px 3px; border-radius: 12px; }
