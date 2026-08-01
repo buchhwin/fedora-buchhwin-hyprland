@@ -19,6 +19,16 @@ jobs:
       - name: bash -n
         run: for f in bootstrap.sh install.sh bin/bhctl lib/*.sh scripts/*.sh; do bash -n "$f"; done
 
+      - name: translations agree
+        # A key missing from de.sh does not fail, it silently prints the
+        # English sentence — which reads fine and hides the omission.
+        run: ./tests/test-i18n.sh
+
+      - name: the questions actually read their answers
+        # Driven through a pseudo-terminal, because --dry-run and --unattended
+        # both return the default on purpose and would pass while broken.
+        run: python3 tests/test_questions.py
+
   python:
     name: Python
     runs-on: ubuntu-latest

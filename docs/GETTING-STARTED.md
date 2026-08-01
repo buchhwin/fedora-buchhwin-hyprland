@@ -2,6 +2,29 @@
 
 The first ten minutes, in the order they actually matter.
 
+## What it asks before it starts
+
+The installer opens with a short set of questions and then leaves you alone:
+
+| | |
+|---|---|
+| Language | English or German, for the installer, `bhctl` and the settings app |
+| Keyboard layout and variant | validated against `localectl`, so a typo cannot get through |
+| Timezone | validated against `timedatectl` |
+| Computer name | asked only while it is still `localhost` or `fedora` |
+| Palette and accent | the accent list comes from the palette you picked — they differ |
+
+The keyboard answer is applied in three places, and all three matter: the
+Hyprland session, the **login screen**, and the text console. The login screen
+is where you type your password first, so a layout that only applied to the
+session would be wrong exactly when it counts.
+
+Nothing here is a one-way door. Each answer has a command-line flag
+(`--lang`, `--flavour`, `--accent`, …), `--skip setup` leaves the dialog out,
+and `--unattended` answers nothing and changes nothing — that is the mode
+automated builds use. Afterwards, everything is editable in the settings app
+or with `bhctl set`.
+
 ## The six keys that do most of the work
 
 | Keys | |
