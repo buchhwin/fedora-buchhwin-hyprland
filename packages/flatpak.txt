@@ -10,4 +10,3 @@ com.spotify.Client                # not packaged for Fedora
 com.discordapp.Discord            # not packaged for Fedora
 md.obsidian.Obsidian              # not packaged for Fedora
 org.onlyoffice.desktopeditors     # best .docx/.xlsx/.pptx fidelity on Linux
-io.dbeaver.DBeaverCommunity       # not packaged for Fedora

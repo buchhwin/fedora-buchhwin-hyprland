@@ -65,20 +65,35 @@ phase_apps() {
             flathub https://dl.flathub.org/repo/flathub.flatpakrepo \
             || fail "$(msg fail_flathub)"
 
-        local id
-        while read -r id; do
-            [[ -z "$id" ]] && continue
-            if ! (( DRY_RUN )) && flatpak info "$id" >/dev/null 2>&1; then
-                SKIPPED+=("$id"); continue
-            fi
-            step "$(msg step_flatpak "$id")"
-            # System-wide, matching the system-wide remote from phase 10.
-            if run sudo flatpak install -y --noninteractive flathub "$id"; then
-                INSTALLED+=("$id")
-            else
-                fail "$(msg fail_flatpak "$id")"
-            fi
-        done < <(read_list "$REPO_DIR/packages/flatpak.txt")
+        # One cause should produce one message. Without this, a full disk shows
+        # up as one red line per application and hides the single thing that is
+        # actually wrong. Measured: the four Flatpaks below need 4.7 GB with
+        # their runtimes, so 5 GB free is the point where it is worth starting.
+        local fp_free; fp_free="$(free_mb /var/lib/flatpak)"
+        if [[ -n "$fp_free" ]] && (( fp_free < 5000 )) && ! (( DRY_RUN )); then
+            warn "$(msg warn_flatpak_no_space "$fp_free")"
+        else
+            local id fp_out; fp_out="$(mktemp)"
+            while read -r id; do
+                [[ -z "$id" ]] && continue
+                if ! (( DRY_RUN )) && flatpak info "$id" >/dev/null 2>&1; then
+                    SKIPPED+=("$id"); continue
+                fi
+                step "$(msg step_flatpak "$id")"
+                # System-wide, matching the system-wide remote from phase 10.
+                #
+                # </dev/null matters: this loop's stdin is the package list
+                # arriving through process substitution, and any child that
+                # reads stdin eats the entries not yet processed.
+                if run_capture "$fp_out" sudo flatpak install -y \
+                        --noninteractive flathub "$id" </dev/null; then
+                    INSTALLED+=("$id")
+                else
+                    fail "$(msg fail_flatpak "$id" "$(reason_from "$fp_out")")"
+                fi
+            done < <(read_list "$REPO_DIR/packages/flatpak.txt")
+            rm -f "$fp_out"
+        fi
     fi
 
     # --- web apps ------------------------------------------------------------

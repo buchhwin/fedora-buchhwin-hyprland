@@ -25,7 +25,7 @@ Fedora, RPM Fusion, and these third-party sources:
 | [`varlad/zellij`](https://copr.fedorainfracloud.org/coprs/varlad/zellij/) | zellij is not packaged in Fedora |
 | [`atim/lazygit`](https://copr.fedorainfracloud.org/coprs/atim/lazygit/), [`atim/starship`](https://copr.fedorainfracloud.org/coprs/atim/starship/) | neither is packaged in Fedora |
 | Brave, Microsoft | their own RPM repositories |
-| Flathub | Spotify, Discord, Obsidian, ONLYOFFICE, DBeaver |
+| Flathub | Spotify, Discord, Obsidian, ONLYOFFICE |
 
 ## A note on GTK
 

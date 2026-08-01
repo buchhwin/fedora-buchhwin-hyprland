@@ -34,7 +34,13 @@ phase_base() {
     fi
 
     step "$(msg step_update)"
-    run_quiet sudo dnf update -y || warn "$(msg warn_update)"
+    # The reason travels with the warning. "The system update did not finish
+    # cleanly" on its own tells nobody whether the disk is full, a mirror
+    # returned a 404 or a repository is misconfigured — three problems with
+    # three completely different answers.
+    local upd_out; upd_out="$(mktemp)"
+    run_capture "$upd_out" sudo dnf update -y || warn "$(msg warn_update "$(reason_from "$upd_out")")"
+    rm -f "$upd_out"
 
     mapfile -t core < <(read_list "$REPO_DIR/packages/dnf-core.txt")
     dnf_install "${core[@]}"

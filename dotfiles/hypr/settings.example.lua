@@ -81,7 +81,12 @@ return {
     -- Input
     -- =====================================================================
     input = {
-        kb_layout      = "de",
+        -- "us" and not "de": this file is the EXAMPLE shipped in a public
+        -- repository, and a German layout is a personal choice, not a sane
+        -- default for everyone who clones it. It also disagreed with the
+        -- fallback in hyprland.lua, which has always been "us".
+        -- The installer asks, and writes the answer here on a fresh install.
+        kb_layout      = "us",
         kb_variant     = "",
         kb_options     = "",
         follow_mouse   = 1,

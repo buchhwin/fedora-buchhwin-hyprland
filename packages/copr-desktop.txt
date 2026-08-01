@@ -2,14 +2,44 @@
 # packages/copr.txt. Keep this list as short as possible: every entry here is a
 # third-party dependency that can break on the jump to Fedora 45.
 
-# --- solopasha/hyprland -----------------------------------------------------
-hyprland                        # the compositor (Lua config since 0.55)
+# --- sachesi/hyprland: THE COMPOSITOR STACK, PINNED -------------------------
+#
+# These versions are written out on purpose, and the pin is not decoration.
+#
+# Measured on 2026-08-02 by resolving a fresh install against an empty root
+# (`dnf install --assumeno --installroot=…`): the unpinned list DOES NOT
+# RESOLVE AT ALL any more. The repository has moved most of the stack onto
+# hyprutils 0.14, but hyprlock has not been rebuilt for it and stops at 0.9.6:
+#
+#   hyprland 0.56.1  needs libhyprutils.so.13   (hyprutils 0.14)
+#   hypridle 0.1.8   needs libhyprutils.so.13   (hyprutils 0.14)
+#   hyprlock 0.9.6   needs libhyprutils.so.12   (hyprutils 0.13.1)
+#   -> "Failed to resolve the transaction"
+#
+# So the choice is not "newest or verified", it is "a coherent set or nothing".
+# The set below is the one running on the machine this desktop was developed
+# and verified against, and it resolves cleanly. Its own dependencies
+# (aquamarine 0.12.1, hyprutils 0.13.1, hyprcursor, hyprgraphics, hyprlang,
+# hyprwire) follow from these six and are deliberately NOT listed.
+#
+# There is a second reason to hold hyprland at 0.55: 0.55 is the release that
+# replaced hyprlang with Lua, and every file in dotfiles/hypr is written and
+# checked against that API. 0.56 is not merely newer, it is untested here.
+#
+# TO MOVE UP: wait until hyprlock is rebuilt against the newer hyprutils, then
+# raise all six together and re-run the resolve test above. Never raise one.
+hyprland-0.55.4                     # the compositor (Lua config since 0.55)
+xdg-desktop-portal-hyprland-1.3.12  # screen sharing / screenshot portal backend
+hyprpolkitagent-0.1.3               # polkit authentication dialogs
+hyprlock-0.9.6                      # lock screen — the one holding the set back
+hypridle-0.1.7                      # idle daemon (dim / lock / dpms)
+hyprpicker-0.4.7                    # colour picker
+
+# --- solopasha/hyprland: everything OUTSIDE the compositor stack -------------
+# Not pinned: none of these link against hyprutils, so they cannot drag the
+# set apart. lib/10-repos.sh excludes hypr*/aquamarine* from this repository
+# precisely so that it can only ever provide the three below.
 uwsm                            # universal wayland session manager
-xdg-desktop-portal-hyprland     # screen sharing / screenshot portal backend
-hyprpolkitagent                 # polkit authentication dialogs
-hyprlock                        # lock screen
-hypridle                        # idle daemon (dim / lock / dpms)
-hyprpicker                      # colour picker
 swww                            # wallpaper daemon with transitions
 satty                           # screenshot annotation
 

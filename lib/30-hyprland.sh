@@ -13,26 +13,32 @@ phase_hyprland() {
     # --- verify the compositor is actually the Lua-config generation ---------
     # Hyprland 0.55 replaced hyprlang with Lua. Everything in dotfiles/hypr is
     # written for that; silently running an older build would load nothing.
+    # The version this desktop is written and verified against. packages/
+    # copr-desktop.txt pins the packages to match; this is the check that the
+    # pin actually held, because a mismatch is silent otherwise — Hyprland
+    # starts either way and simply ignores config it does not understand.
+    local hypr_expected="0.55"
+
     if ! (( DRY_RUN )) && command -v hyprctl >/dev/null 2>&1; then
         local hv; hv="$(Hyprland --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
         if [[ -n "$hv" ]]; then
-            local maj min; maj="${hv%%.*}"; min="$(cut -d. -f2 <<<"$hv")"
-            if (( maj == 0 && min < 55 )); then
-                fail "$(msg fail_hyprland_old "$hv")"
-            else
+            # Numeric, not string: "0.9" sorts AFTER "0.55" as text, which
+            # would report an ancient build as too new.
+            local maj min emaj emin
+            maj="${hv%%.*}"; min="$(cut -d. -f2 <<<"$hv")"
+            emaj="${hypr_expected%%.*}"; emin="${hypr_expected##*.}"
+            if (( maj == emaj && min == emin )); then
                 ok "$(msg ok_hyprland "$hv")"
-                # 0.56 exists in the COPR but cannot be installed alongside a
-                # working desktop: it needs aquamarine 0.14, while hyprlock and
-                # hyprpicker in the same repository are still built against
-                # 0.12. Taking 0.56 therefore REMOVES the lock screen and the
-                # colour picker — measured, not assumed.
-                #
-                # 0.55 is what matters: it is the release that made the config
-                # Lua, which is what everything here is written for. When the
-                # repository rebuilds hyprlock against the newer aquamarine,
-                # a plain `bhctl update` will move up on its own. Nothing is
-                # pinned; it simply is not forced.
-                (( maj == 0 && min == 55 )) && info "$(msg info_hyprland_055)"
+            elif (( maj < emaj || (maj == emaj && min < emin) )); then
+                # Before 0.55 the config language was hyprlang, not Lua.
+                # Everything in dotfiles/hypr would load as nothing at all.
+                fail "$(msg fail_hyprland_old "$hv" "$hypr_expected")"
+            else
+                # Newer is not better here. 0.56 needs hyprutils 0.14, and
+                # hyprlock has no build against it — measured on 2026-08-02:
+                # the whole transaction stops resolving. If this fires, the
+                # pin in copr-desktop.txt was bypassed or the repository moved.
+                fail "$(msg fail_hyprland_new "$hv" "$hypr_expected")"
             fi
         fi
     fi

@@ -36,13 +36,40 @@ phase_preflight() {
     ok "$(msg ok_network)"
 
     # --- free space ----------------------------------------------------------
-    local free_mb; free_mb="$(df -Pm / | awk 'NR==2 {print $4}')"
-    if (( free_mb < 12000 )); then
-        warn "$(msg warn_low_space "$free_mb")"
-        confirm "$(msg ask_continue_anyway)" || die "$(msg err_aborted)"
-    else
-        ok "$(msg ok_space "$(( free_mb / 1024 ))")"
+    #
+    # This used to warn and carry on. It is a hard stop now, because carrying on
+    # is what produced the failure this check exists to prevent: a run with
+    # 8643 MB free installed 109 packages and then died on the last two
+    # Flatpaks, leaving a half-built desktop and a summary full of red.
+    #
+    # The numbers are measured, not estimated. A finished install of this
+    # desktop occupies 11.0 GB on / (btrfs, zstd:1), of which /var/lib/flatpak
+    # is 5.0 GB. Add the RPMs and Flatpak downloads that are staged during the
+    # run and released afterwards, and 12 GB free is the honest requirement.
+    # Dropping the Flatpaks really does drop the need — hence the three tiers
+    # rather than one number that is wrong for two of the three cases.
+    local need_mb=12000 how="" flatpak_dir="/var/lib/flatpak"
+    if (( MINIMAL )); then
+        need_mb=6000;  how="--minimal"
+    elif (( NO_FLATPAK )); then
+        need_mb=8000;  how="--no-flatpak"
     fi
+
+    local root_mb; root_mb="$(free_mb /)"
+    if (( root_mb < need_mb )); then
+        die "$(msg err_low_space "$root_mb" "$(( need_mb / 1000 ))" "${how:---no-flatpak}")"
+    fi
+
+    # /var/lib/flatpak is usually on / — but not on Fedora Server's default LVM
+    # layout, and that is exactly the machine that runs out. Only worth saying
+    # anything when it really is a separate filesystem.
+    if ! (( MINIMAL )) && ! (( NO_FLATPAK )); then
+        local fp_mb; fp_mb="$(free_mb "$flatpak_dir")"
+        if [[ -n "$fp_mb" ]] && (( fp_mb < 6000 )) && (( fp_mb != root_mb )); then
+            die "$(msg err_low_space_flatpak "$fp_mb")"
+        fi
+    fi
+    ok "$(msg ok_space "$(( root_mb / 1024 ))")"
 
     # --- GPU -----------------------------------------------------------------
     if [[ "$GPU" == "auto" ]]; then

@@ -27,6 +27,29 @@ No custom ISO, no kickstart file, no boot parameters: download Fedora from
 [fedoraproject.org](https://fedoraproject.org/server/download), install it the
 normal way, then run the line above.
 
+It starts by asking half a dozen questions — language, keyboard layout,
+timezone, computer name, colour palette — and then does not interrupt again.
+Every one of them also has a flag, and `--unattended` skips the lot.
+
+### Disk space
+
+Measured on a finished install, not estimated: **11 GB** on `/`, of which
+5 GB is Flatpaks. The installer needs some headroom on top of that for packages
+it downloads and then discards, so it checks up front and **stops** rather than
+running out three quarters of the way through:
+
+| Run | Free space needed on `/` |
+|---|---|
+| default | **12 GB** |
+| `--no-flatpak` | 8 GB |
+| `--minimal` | 6 GB |
+
+For a machine you actually intend to use, give it 30 GB or more — 60 GB if you
+keep documents on it, and considerably more if games are going on the same
+disk. Note that Fedora Server's default partitioning caps `/` and gives the
+rest to `/home`, so "the disk is big enough" and "`/` is big enough" are not
+the same statement.
+
 <details>
 <summary>Options, and why this is not <code>curl | bash</code></summary>
 

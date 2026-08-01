@@ -54,6 +54,20 @@ phase_repos() {
             run sudo dnf config-manager setopt "$repoid.priority=$prio" \
                 || warn "$(msg warn_copr_priority "$copr")"
         fi
+
+        # Priority alone is NOT enough, measured on 2026-08-02: solopasha ships
+        # xdg-desktop-portal-hyprland as 1:1.3.11 — with an EPOCH — and an epoch
+        # outranks any version number, so its older, hyprutils-0.10 build won
+        # over sachesi's 1.3.12 and the whole transaction stopped resolving.
+        #
+        # packages/copr.txt already says this repository is here for uwsm, swww
+        # and satty only. This makes that sentence enforceable instead of
+        # aspirational: nothing from the compositor stack can come from here.
+        if [[ "$copr" == solopasha/hyprland ]]; then
+            run sudo dnf config-manager setopt \
+                "$repoid.excludepkgs=hypr*,aquamarine*,xdg-desktop-portal-hyprland" \
+                || warn "$(msg warn_copr_exclude "$copr")"
+        fi
     done < <(read_list "$REPO_DIR/packages/copr.txt")
 
     (( MINIMAL )) && { info "$(msg info_minimal_skip_repos)"; return 0; }

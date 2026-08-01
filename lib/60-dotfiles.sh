@@ -60,6 +60,22 @@ phase_dotfiles() {
         run mkdir -p "$CONFIG_HOME/hypr"
         run cp "$REPO_DIR/dotfiles/hypr/settings.example.lua" \
                "$CONFIG_HOME/hypr/settings.lua"
+
+        # The keyboard answer from phase 05 lands here, and only here: the file
+        # did not exist when the question was asked. Applied ONLY to a freshly
+        # seeded file — an existing settings.lua belongs to the user and to the
+        # settings GUI, and a re-run must not reach into it.
+        #
+        # settings.py rather than sed, because settings.lua is real Lua and is
+        # read back through the lua interpreter. bhctl set would also work but
+        # additionally reloads Hyprland, which is not running during install.
+        if [[ -n "${SETUP_KB_LAYOUT:-}" ]]; then
+            step "$(msg step_settings_keyboard "$SETUP_KB_LAYOUT" "${SETUP_KB_VARIANT:-–}")"
+            run python3 "$REPO_DIR/scripts/settings.py" set \
+                "input.kb_layout=$SETUP_KB_LAYOUT" \
+                "input.kb_variant=${SETUP_KB_VARIANT:-}" \
+                || warn "$(msg warn_settings_keyboard)"
+        fi
     else
         info "$(msg info_settings_kept)"
     fi

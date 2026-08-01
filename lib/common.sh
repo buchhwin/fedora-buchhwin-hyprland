@@ -56,6 +56,10 @@ declare -A MSG_EN=() MSG_LOCAL=()
 
 i18n_load() {
     local lang="${1:-en}"
+    # Cleared, because this is called a SECOND time once the setup phase has
+    # asked which language to use. Without it, switching de -> en would leave
+    # the German table in place and keep answering in German.
+    MSG_LOCAL=()
     # shellcheck source=/dev/null
     source "$REPO_DIR/i18n/en.sh"
     local k
@@ -123,7 +127,17 @@ run() {
         return 0
     fi
     _log "run: $*"
-    "$@"
+    # Screen AND log. This used to be a bare "$@", so the output went to the
+    # screen only and the log held nothing but the command line — while the
+    # summary underneath still promised a "full log". When two Flatpaks failed,
+    # the reason had scrolled off the screen and existed nowhere else.
+    #
+    # PIPESTATUS rather than pipefail: this file is also sourced by scripts
+    # that do not set it, and the status of the command must not become the
+    # status of tee.
+    "$@" 2>&1 | tee -a "$LOG_FILE"
+    local rc="${PIPESTATUS[0]}"
+    return "$rc"
 }
 
 run_quiet() {
@@ -134,6 +148,39 @@ run_quiet() {
     fi
     _log "run: $*"
     "$@" >>"$LOG_FILE" 2>&1
+}
+
+# run_capture <file> <cmd...>
+#
+# Like run_quiet, but the output also lands in <file> so the CALLER can quote
+# the actual error. "The system update did not finish cleanly" is not a fault
+# report, it is a shrug; the reason belongs in the message, not only in a log
+# the user then has to go and find.
+run_capture() {
+    local out="$1"; shift
+    if (( DRY_RUN )); then
+        printf '     %s[dry-run]%s %s\n' "$C_DIM" "$C_RESET" "$*"
+        _log "dry-run: $*"
+        : >"$out"
+        return 0
+    fi
+    _log "run: $*"
+    # Visible like run(), because the things worth capturing are also the slow
+    # ones: a silent five-minute dnf update or a 1.3 GB Flatpak download looks
+    # like a hung installer. tee -a applies to every file, so <out> is
+    # truncated first rather than growing across calls.
+    : >"$out"
+    "$@" 2>&1 | tee -a "$LOG_FILE" "$out"
+    local rc="${PIPESTATUS[0]}"
+    return "$rc"
+}
+
+# The last meaningful line(s) of a captured output, trimmed to one line so it
+# fits in a warning and in the summary list.
+reason_from() {
+    local f="$1" n="${2:-2}"
+    [[ -s "$f" ]] || return 0
+    grep -vE '^[[:space:]]*$' "$f" | tail -n "$n" | tr '\n' ' ' | cut -c1-240
 }
 
 # ---------------------------------------------------------------------------
@@ -294,6 +341,20 @@ ensure_block() {
 # ---------------------------------------------------------------------------
 fedora_version() { rpm -E %fedora 2>/dev/null || echo 0; }
 
+# Free megabytes on the filesystem holding <path>.
+#
+# Walks up to the first component that exists, because the interesting paths do
+# not exist yet when the question is asked: /var/lib/flatpak is created by
+# flatpak, and asking df about a missing path returns nothing at all. Checking
+# "/" alone is not enough either — Fedora Server's default LVM layout puts
+# /home on its own volume and caps /, which is exactly the machine where this
+# check matters.
+free_mb() {
+    local p="${1:-/}"
+    while [[ ! -e "$p" && "$p" != "/" ]]; do p="$(dirname "$p")"; done
+    df -Pm "$p" 2>/dev/null | awk 'NR==2 {print $4}'
+}
+
 is_vm() {
     local v; v="$(systemd-detect-virt 2>/dev/null || echo none)"
     [[ "$v" != "none" ]]
@@ -336,10 +397,105 @@ detect_gpu() {
     fi
 }
 
+# ---------------------------------------------------------------------------
+# Questions
+#
+# Everything here reads from the TERMINAL, not from stdin, and writes its
+# prompts there too. Two reasons, both real:
+#
+#   1. bootstrap.sh is still advertised as `curl … | bash`, and the test-lab
+#      script really invokes it that way. There stdin is the SCRIPT — a plain
+#      `read` swallows the rest of it or sees EOF immediately.
+#   2. ask_value/ask_choice return their answer on stdout so callers can use
+#      $( ). A prompt printed to stdout would end up inside the answer.
+#
+# With no terminal at all the default is taken and the run continues. A
+# question nobody can see must never block an install.
+# ---------------------------------------------------------------------------
+_have_tty() { [[ -r /dev/tty && -w /dev/tty ]]; }
+
+_say_tty() { if _have_tty; then printf '%b' "$1" >/dev/tty; else printf '%b' "$1" >&2; fi; }
+
+# _ask_raw <prompt> <varname> -> 1 when there is nothing to read from
+#
+# Every local in here is __ask_-prefixed on purpose. Returning a value through
+# a caller-supplied variable NAME collides the moment the caller picks the same
+# name for its own local — and every caller here naturally called it "reply".
+# printf -v then wrote into THIS function's local, which vanished on return, so
+# every question silently answered itself with its default and confirm() always
+# said no. The prompt appeared, the typed text echoed, and the answer was
+# thrown away.
+_ask_raw() {
+    local __ask_prompt="$1" __ask_var="$2" __ask_reply=""
+    [[ "$__ask_var" == __ask_* ]] && return 1   # never let the collision back in
+    _say_tty "$__ask_prompt"
+    if _have_tty; then
+        IFS= read -r __ask_reply </dev/tty || return 1
+    elif [[ -t 0 ]]; then
+        IFS= read -r __ask_reply || return 1
+    else
+        _say_tty '\n'
+        return 1
+    fi
+    printf -v "$__ask_var" '%s' "$__ask_reply"
+}
+
 confirm() {
     (( UNATTENDED )) && return 0
     (( DRY_RUN )) && return 0
-    local reply
-    read -r -p "  $1 [y/N] " reply
+    local reply=""
+    _ask_raw "  $1 [y/N] " reply || return 1
     [[ "$reply" =~ ^[Yy]$ ]]
+}
+
+# ask_value <question> <default> [validator]
+#
+# Free text with a default. The validator is a function name; it is asked again
+# until the answer passes, so nothing unchecked can reach a config file.
+ask_value() {
+    local question="$1" default="$2" validator="${3:-}" reply=""
+    if (( UNATTENDED )) || (( DRY_RUN )); then printf '%s' "$default"; return 0; fi
+    while true; do
+        if ! _ask_raw "  $question [$default]: " reply; then
+            printf '%s' "$default"; return 0
+        fi
+        [[ -z "$reply" ]] && reply="$default"
+        if [[ -z "$validator" ]] || "$validator" "$reply"; then
+            printf '%s' "$reply"; return 0
+        fi
+        _say_tty "  $C_YELLOW$(msg ask_invalid "$reply")$C_RESET\n"
+    done
+}
+
+# ask_choice <question> <default> <option...>
+#
+# A numbered list. Enter takes the default; the default is also offered as a
+# plain typed value so an answer that is not in the short list still works.
+ask_choice() {
+    local question="$1" default="$2"; shift 2
+    local -a options=("$@")
+    if (( UNATTENDED )) || (( DRY_RUN )); then printf '%s' "$default"; return 0; fi
+
+    local i reply=""
+    _say_tty "\n  $C_BOLD$question$C_RESET\n"
+    for i in "${!options[@]}"; do
+        if [[ "${options[$i]}" == "$default" ]]; then
+            _say_tty "    $C_GREEN$((i + 1)))$C_RESET ${options[$i]} $C_DIM($(msg ask_default))$C_RESET\n"
+        else
+            _say_tty "    $((i + 1))) ${options[$i]}\n"
+        fi
+    done
+    while true; do
+        if ! _ask_raw "  $(msg ask_pick) [$default]: " reply; then
+            printf '%s' "$default"; return 0
+        fi
+        [[ -z "$reply" ]] && { printf '%s' "$default"; return 0; }
+        if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= ${#options[@]} )); then
+            printf '%s' "${options[$((reply - 1))]}"; return 0
+        fi
+        for i in "${options[@]}"; do
+            [[ "$reply" == "$i" ]] && { printf '%s' "$reply"; return 0; }
+        done
+        _say_tty "  $C_YELLOW$(msg ask_invalid "$reply")$C_RESET\n"
+    done
 }

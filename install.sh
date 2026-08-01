@@ -25,6 +25,8 @@ IS_VM=0
 ONLY_PHASES=()
 SKIP_PHASES=()
 WITH_GROUPS=()
+FLAVOUR_SET=0
+ACCENT_SET=0
 
 usage() {
     cat <<'EOF'
@@ -54,8 +56,12 @@ Usage: ./install.sh [options]
   --skip PHASE           Skip this phase (repeatable).
   -h, --help             This text.
 
-Phases: preflight repos tweaks base hyprland apps theme dotfiles services vm
-        firewall summary
+Phases: preflight setup repos tweaks base hyprland apps theme dotfiles
+        services vm firewall summary
+
+The "setup" phase is the short set of questions at the start (language,
+keyboard, timezone, hostname, palette). --unattended and --skip setup both
+turn it off; every answer also has its own flag.
 EOF
 }
 
@@ -70,8 +76,8 @@ while [[ $# -gt 0 ]]; do
         --no-firewall) NO_FIREWALL=1 ;;
         --profile)     PROFILE="${2:?}"; shift ;;
         --gpu)         GPU="${2:?}"; shift ;;
-        --flavour)     THEME_FLAVOUR="${2:?}"; shift ;;
-        --accent)      THEME_ACCENT="${2:?}"; shift ;;
+        --flavour)     THEME_FLAVOUR="${2:?}"; FLAVOUR_SET=1; shift ;;
+        --accent)      THEME_ACCENT="${2:?}"; ACCENT_SET=1; shift ;;
         --lang)        LANG_CHOICE="${2:?}"; shift ;;
         --only)        ONLY_PHASES+=("${2:?}"); shift ;;
         --skip)        SKIP_PHASES+=("${2:?}"); shift ;;
@@ -84,6 +90,13 @@ done
 export DRY_RUN UNATTENDED MINIMAL NO_FLATPAK NO_TWEAKS NO_FIREWALL PROFILE GPU LANG_CHOICE
 export WITH_GROUPS_STR="${WITH_GROUPS[*]:-}"
 export THEME_FLAVOUR THEME_ACCENT TARGET_FEDORA IS_VM
+# Whether the palette came from the command line. The setup phase asks only
+# about things the user has not already answered with a flag.
+export FLAVOUR_SET ACCENT_SET
+# Filled in by the setup phase, consumed by the dotfiles phase — settings.lua
+# does not exist yet at the time the question is asked.
+SETUP_KB_LAYOUT=""; SETUP_KB_VARIANT=""
+export SETUP_KB_LAYOUT SETUP_KB_VARIANT
 
 # ---------------------------------------------------------------------------
 # Load helpers and phases
@@ -136,8 +149,20 @@ printf '\n%s%s%s\n' "$C_BOLD$C_MAUVE" "$(msg banner)" "$C_RESET"
 printf '%s%s%s\n' "$C_DIM" "$(msg banner_sub "$THEME_FLAVOUR" "$THEME_ACCENT" "$PROFILE")" "$C_RESET"
 (( DRY_RUN )) && printf '%s%s%s\n' "$C_YELLOW" "$(msg banner_dry)" "$C_RESET"
 
+# The language comes before everything else, so that the rest of the run —
+# including preflight, which is allowed to abort — speaks the language the user
+# picked instead of one guessed from $LANG. The tables are reloaded with the
+# answer. Skipped when --lang already said so, and when nobody is watching.
+if [[ -z "$LANG_CHOICE" ]] && ! (( UNATTENDED )) && ! (( DRY_RUN )) \
+   && should_run setup; then
+    LANG_CHOICE="$(ask_choice "$(msg ask_language)" "$(resolve_lang)" en de)"
+    export LANG_CHOICE
+    i18n_load "$LANG_CHOICE"
+fi
+
 should_run preflight && phase_preflight
 sudo_init
+should_run setup     && phase_setup
 should_run repos     && phase_repos
 should_run tweaks    && phase_tweaks
 should_run base      && phase_base
