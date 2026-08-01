@@ -15,9 +15,9 @@ jobs:
       - name: shellcheck
         run: |
           sudo apt-get update -qq && sudo apt-get install -y shellcheck
-          shellcheck -S warning bootstrap.sh install.sh bin/bhctl lib/*.sh scripts/*.sh
+          shellcheck -S warning bootstrap.sh install.sh bin/bhctl lib/*.sh scripts/*.sh tests/*.sh
       - name: bash -n
-        run: for f in bootstrap.sh install.sh bin/bhctl lib/*.sh scripts/*.sh; do bash -n "$f"; done
+        run: for f in bootstrap.sh install.sh bin/bhctl lib/*.sh scripts/*.sh tests/*.sh; do bash -n "$f"; done
 
       - name: translations agree
         # A key missing from de.sh does not fail, it silently prints the
@@ -37,7 +37,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: pipx install ruff
-      - run: ruff check theme/apply-theme.py scripts/*.py panel/*.py settings-gui/
+      - run: ruff check theme/apply-theme.py scripts/*.py panel/*.py settings-gui/ tests/*.py
       - run: python -m py_compile theme/apply-theme.py scripts/*.py panel/*.py
       - name: generated docs are up to date
         # DEFAULTS.md is generated from settings.example.lua. A hand-edited
@@ -170,8 +170,19 @@ jobs:
             [ -f "$list" ] || continue
             while read -r p; do
               [ -z "$p" ] && continue
-              dnf -q repoquery --qf '%{name}' "$p" 2>/dev/null | grep -qx "$p" \
-                || missing="$missing $p"
+              # Entries may carry a version (hyprland-0.55.4). Those are pins,
+              # and they have to be checked AS pins: repoquery --qf '%{name}'
+              # answers "hyprland", so comparing that against the written entry
+              # would report every pinned package as missing. Ask for the exact
+              # name-version instead, which also proves the pinned build still
+              # exists — the thing most worth knowing about a pin.
+              if printf '%s' "$p" | grep -qE -- '-[0-9]'; then
+                dnf -q repoquery --qf '%{name}-%{version}' "$p" 2>/dev/null \
+                  | grep -qx -- "$p" || missing="$missing $p"
+              else
+                dnf -q repoquery --qf '%{name}' "$p" 2>/dev/null | grep -qx -- "$p" \
+                  || missing="$missing $p"
+              fi
             done < <(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' "$list")
           done
           if [ -n "$missing" ]; then echo "not resolvable:$missing"; exit 1; fi
