@@ -170,14 +170,14 @@ cmd_doctor() {
         fail "settings.lua cannot be read"; (( problems++ ))
     fi
 
-    # buchhwin-panel and buchhwin-dock were missing from this list, and they are
-    # the two whose absence is hardest to recognise from the outside: the panel
-    # daemon is what every popup in the bar talks to through a FIFO, so when it
-    # is dead the bar still LOOKS right and simply no click does anything. The
-    # first person to hit that got "no problems found" from this very command.
+    # buchhwin-panel was missing from this list, and its absence is the hardest
+    # of all to recognise from the outside: it is what every popup in the bar
+    # talks to through a FIFO, AND it now draws the dock — so when it is dead
+    # the bar still LOOKS right and simply no click does anything. The first
+    # person to hit that got "no problems found" from this very command.
     step "user services"
     local u
-    for u in buchhwin-bar buchhwin-panel buchhwin-dock buchhwin-notifications \
+    for u in buchhwin-bar buchhwin-panel buchhwin-notifications \
              buchhwin-clipboard buchhwin-wallpaper buchhwin-idle buchhwin-polkit; do
         local state; state="$(systemctl --user is-active "$u.service" 2>/dev/null || true)"
         case "$state" in
@@ -191,7 +191,7 @@ cmd_doctor() {
     # Checked separately so the message can say what it costs.
     if [[ -n "${WAYLAND_DISPLAY:-}" ]] \
        && [[ "$(systemctl --user is-active buchhwin-panel.service 2>/dev/null)" != active ]]; then
-        fail "buchhwin-panel is not running — no popup in the bar will open"
+        fail "buchhwin-panel is not running — no dock, and no popup in the bar"
         info "journalctl --user -u buchhwin-panel -n 30"
         (( problems++ ))
     fi

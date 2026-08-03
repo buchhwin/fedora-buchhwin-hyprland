@@ -20,28 +20,63 @@
 # --software-render is the honest answer: a switch, documented, rather than a
 # guess that fails as a black screen.
 phase_vm_tweaks() {
-    if (( SOFTWARE_RENDER )); then
-        section "$(msg sec_vm)"
-        info "$(msg info_vm_forced)"
-    elif (( ! IS_VM )); then
-        return 0
-    elif gpu_is_accelerated; then
-        section "$(msg sec_vm)"
+    (( SOFTWARE_RENDER )) || (( IS_VM )) || return 0
+    section "$(msg sec_vm)"
+
+    # Inside a VM the EDID physical size comes from the hypervisor, not from a
+    # panel, so Hyprland's "auto" scale is derived from a number nobody
+    # measured — and a VM that reports nonsense lands on 2, which is exactly
+    # the "everything is twice as big" a first VirtualBox install produced.
+    # Written into settings.lua, so the Displays page can override it.
+    if (( IS_VM )); then
+        step "$(msg step_vm_scale)"
+        run python3 "$REPO_DIR/scripts/settings.py" set monitor_scale=1 \
+            || warn "$(msg warn_vm_scale)"
+    fi
+
+    if (( ! SOFTWARE_RENDER )) && gpu_is_accelerated; then
         # A machine that gained VirGL after an earlier install still carries the
         # old file, and it would keep the screen black. Clear it out.
         if [[ -f "$CONFIG_HOME/uwsm/env-hyprland" ]] && (( ! DRY_RUN )); then
             rm -f "$CONFIG_HOME/uwsm/env-hyprland"
         fi
-        ok "$(msg ok_vm_accelerated)"
-        # Said out loud, because "accelerated" here can also mean "could not be
-        # checked", and somebody staring at a black screen needs to know which
-        # branch ran.
-        info "$(msg info_vm_hint_software)"
+
+        # "Accelerated" here means one of two very different things, and the
+        # difference decides whether the desktop works at all. With a virtio GPU
+        # the VirGL bit was actually READ. Without one — VirtualBox presents
+        # VMSVGA — nothing was measured; the answer is "no idea" wearing the
+        # same clothes as "yes".
+        #
+        # For that second case GTK4 is put on its software renderer and nothing
+        # else is touched. GSK picks OpenGL and does not fall back on its own,
+        # and everything here that is not the bar is GTK4 — the settings window
+        # and the panel daemon that draws the dock and every popup. In software
+        # those cost almost nothing (a few small windows), while Hyprland keeps
+        # using whatever actually works. Switching Mesa off wholesale instead
+        # would throw away a working compositor to protect two dialogs.
+        if gpu_check_is_conclusive; then
+            ok "$(msg ok_vm_accelerated)"
+        else
+            info "$(msg info_vm_unverifiable)"
+            if (( DRY_RUN )); then
+                printf '     %s[dry-run]%s write %s/uwsm/env-hyprland\n' \
+                    "$C_DIM" "$C_RESET" "$CONFIG_HOME"
+            else
+                mkdir -p "$CONFIG_HOME/uwsm"
+                cat >"$CONFIG_HOME/uwsm/env-hyprland" <<'EOF'
+# This VM's 3D could not be verified — it presents no virtio GPU, so there was
+# no VirGL bit to read. Hyprland is left alone; only GTK4 is put on its software
+# renderer, because it does not fall back by itself and the panel daemon failing
+# to start looks like a bar where no click does anything.
+export GSK_RENDERER=cairo
+EOF
+            fi
+            info "$(msg info_vm_hint_software)"
+        fi
         return 0
-    else
-        section "$(msg sec_vm)"
-        info "$(msg info_vm_explain)"
     fi
+
+    (( SOFTWARE_RENDER )) && info "$(msg info_vm_forced)" || info "$(msg info_vm_explain)"
 
     # Software rendering hints. Mesa picks llvmpipe by itself when there is no
     # accelerated device, but being explicit avoids a silent fallback to an

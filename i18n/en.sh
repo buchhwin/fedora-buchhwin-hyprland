@@ -129,6 +129,7 @@ declare -gA MSG=(
     # --- services ------------------------------------------------------------
     [sec_services]="Background services"
     [step_enable_units]="Enabling user services"
+    [step_dock_retired]="Removing the old separate dock service"
     [step_start_unit]="Starting %s, which was enabled but not running"
     [warn_unit]="Service %s could not be enabled"
     [step_generated_units]="Generating the wallpaper timer and drive units"
@@ -146,6 +147,9 @@ declare -gA MSG=(
     [step_vm_effects]="Switching off the expensive effects"
     [warn_vm_effects]="The effect settings could not be written"
     [ok_vm]="Adjusted for the virtual machine"
+    [step_vm_scale]="Pinning the display scale to 1 for this virtual machine"
+    [warn_vm_scale]="The display scale could not be set"
+    [info_vm_unverifiable]="This hypervisor presents no virtio GPU, so its 3D could not be verified. Hyprland is left as it is; GTK4 is put on its software renderer so the panel and the settings window cannot fail to start."
     [ok_vm_accelerated]="Virtual machine with accelerated rendering — keeping the full look"
     [info_vm_forced]="Software rendering was requested with --software-render."
     [info_vm_hint_software]="If the session starts to a black screen, this machine's 3D could not be verified — run the installer again with --software-render."

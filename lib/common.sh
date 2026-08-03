@@ -383,9 +383,36 @@ gpu_is_accelerated() {
     return 0
 }
 
+# Could gpu_is_accelerated() actually MEASURE anything, or did it only fail to
+# disprove acceleration?
+#
+# It reads the VirGL feature bit off a virtio GPU. A hypervisor that presents
+# something else — VirtualBox presents VMSVGA — has no such bit, so the function
+# returns "accelerated" for the same reason it does on real hardware: it found
+# no virtio GPU. On real hardware that is the right answer. In a VM it means
+# "no idea", and the two must not be treated alike.
+gpu_check_is_conclusive() {
+    local dev drv
+    for dev in /sys/bus/virtio/devices/*/; do
+        [[ -e "$dev/driver" ]] || continue
+        drv="$(basename "$(readlink -f "$dev/driver")")"
+        [[ "$drv" == "virtio_gpu" ]] && return 0
+    done
+    return 1
+}
+
 detect_gpu() {
     if lspci 2>/dev/null | grep -qiE 'vga|3d|display' ; then
-        local line; line="$(lspci 2>/dev/null | grep -iE 'vga|3d|display' | head -1)"
+        # ⚠️ NOT `head -1`. A hybrid laptop lists its Intel iGPU first — it is on
+        # bus 00:02.0 and the discrete card is further down — so taking the
+        # first line meant every Intel+NVIDIA machine was detected as "intel",
+        # the NVIDIA branch never ran, and the akmod that machine actually needs
+        # was never built. The discrete card is the one with a driver to
+        # install, so it wins whenever both are present.
+        local all discrete line
+        all="$(lspci 2>/dev/null | grep -iE 'vga|3d|display')"
+        discrete="$(printf '%s\n' "$all" | grep -iE 'nvidia|amd|ati|radeon' | head -1)"
+        line="${discrete:-$(printf '%s\n' "$all" | head -1)}"
         case "$line" in
             *NVIDIA*|*nVidia*) echo nvidia ;;
             *AMD*|*ATI*|*Radeon*) echo amd ;;

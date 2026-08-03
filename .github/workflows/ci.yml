@@ -45,6 +45,11 @@ jobs:
       - run: pipx install ruff
       - run: ruff check theme/apply-theme.py scripts/*.py panel/*.py settings-gui/ tests/*.py
       - run: python -m py_compile theme/apply-theme.py scripts/*.py panel/*.py
+      - name: stylesheets only use colours that exist
+        # GTK drops a declaration whose colour is undefined, silently. The dock
+        # shipped with three such rules and looked simply unstyled.
+        run: python tests/test_css_colors.py
+
       - name: generated docs are up to date
         # DEFAULTS.md is generated from settings.example.lua. A hand-edited
         # copy would drift within a month and nobody would notice, because

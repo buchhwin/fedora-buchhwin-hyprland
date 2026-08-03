@@ -238,6 +238,11 @@ return {
     -- =====================================================================
     monitors = {},
 
+    -- Scale for any screen NOT listed above. "auto" lets Hyprland work it out
+    -- from the reported physical size, which is right on real hardware and a
+    -- coin toss in a virtual machine, where that size is made up.
+    monitor_scale = "auto",
+
     -- Which workspaces live on which screen. Fixed assignment: 1-5 on the
     -- primary, 6-10 on the second, so SUPER+3 always lands in the same place.
     -- With one screen all ten are simply there.

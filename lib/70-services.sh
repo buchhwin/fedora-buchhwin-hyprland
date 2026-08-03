@@ -284,7 +284,6 @@ WantedBy=graphical-session.target'
     step "$(msg step_generated_units)"
     run "$REPO_DIR/scripts/wallpaper.sh" sync-timer || warn "$(msg warn_unit wallpaper-timer)"
     run python3 "$REPO_DIR/scripts/drives.py" sync || warn "$(msg warn_unit drives)"
-    run python3 "$REPO_DIR/scripts/dock.py" sync || warn "$(msg warn_unit dock)"
 
     step "$(msg step_enable_units)"
     local units=(buchhwin-keyring buchhwin-clipboard buchhwin-clipboard-image
@@ -292,6 +291,18 @@ WantedBy=graphical-session.target'
                  buchhwin-idle buchhwin-polkit buchhwin-nightlight
                  buchhwin-panel buchhwin-usb buchhwin-minimize
                  buchhwin-appusage)
+
+    # The dock used to be a second waybar with a unit of its own. It is a window
+    # inside buchhwin-panel now, so an upgraded machine would otherwise run BOTH
+    # — the old one still enabled from the previous install, drawing a second
+    # row of icons that nothing updates any more.
+    if [[ -f "$CONFIG_HOME/systemd/user/buchhwin-dock.service" ]] && ! (( DRY_RUN )); then
+        step "$(msg step_dock_retired)"
+        run_quiet systemctl --user disable --now buchhwin-dock.service || true
+        rm -f "$CONFIG_HOME/systemd/user/buchhwin-dock.service" \
+              "$CONFIG_HOME/waybar/dock.jsonc"
+        run_quiet systemctl --user daemon-reload || true
+    fi
     local u
     for u in "${units[@]}"; do
         run_quiet systemctl --user enable "$u.service" || warn "$(msg warn_unit "$u")"

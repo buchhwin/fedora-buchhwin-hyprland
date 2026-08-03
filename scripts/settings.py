@@ -190,6 +190,18 @@ def parse_value(raw: str):
         return float(raw)
     except ValueError:
         pass
+    # Lists and tables, as JSON. The writer has always been able to put a list
+    # into settings.lua — `monitors` is one — but this function could not READ
+    # one, so `set dock.pinned=["kitty"]` stored the six characters of the text
+    # and the dock then had one pinned application called `["kitty"]`.
+    #
+    # Tried after the numbers, and only for text that starts like a container,
+    # so an ordinary string is never handed to a JSON parser by accident.
+    if raw[:1] in ("[", "{"):
+        try:
+            return json.loads(raw)
+        except ValueError:
+            pass
     return raw
 
 
@@ -206,7 +218,16 @@ def main(argv: list[str]) -> int:
     if cmd == "get":
         data = read()
         for dotted in argv[2:]:
-            value = get_path(data, dotted)
+            # A key that is not in settings.lua is the normal case, not a
+            # crash: a setting nobody has touched yet simply has no entry, and
+            # every caller here already treats empty output as "use the
+            # default". Printing a KeyError traceback for it put a wall of
+            # Python into an installer log that was otherwise clean.
+            try:
+                value = get_path(data, dotted)
+            except (KeyError, IndexError, TypeError):
+                print()
+                continue
             print(value if not isinstance(value, (dict, list))
                   else json.dumps(value, indent=2))
         return 0

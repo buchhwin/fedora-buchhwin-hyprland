@@ -75,7 +75,13 @@ for _, m in ipairs(S.monitors or {}) do
         hl.monitor(spec)
     end
 end
-hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+--- The catch-all. `scale` is settable because "auto" is a guess derived from the
+--- EDID physical size, and inside a virtual machine that size is fiction — it
+--- comes from the hypervisor, not from a panel. A VM that reports nonsense gets
+--- scale 2 and every element on screen doubles. Phase 80 sets this to 1 there;
+--- the Displays page overrides it per screen either way.
+hl.monitor({ output = "", mode = "preferred", position = "auto",
+             scale = S.monitor_scale or "auto" })
 
 ------------------------------------------------------------------------------
 -- Environment

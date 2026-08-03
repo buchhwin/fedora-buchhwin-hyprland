@@ -47,9 +47,10 @@ class Settings:
         This used to write settings.lua, reload Hyprland and restart the bar —
         and nothing else. That made two settings simply not work: the pointer
         theme reaches GTK and gsettings only through theme/apply-theme.py, and
-        the dock exists only once scripts/dock.py has generated its config and
-        unit. Both ran in the installer and nowhere else, so changing them in
-        this window did exactly nothing.
+        the dock used to exist only once scripts/dock.py had generated its
+        config and unit. Both ran in the installer and nowhere else, so changing
+        them in this window did exactly nothing. The dock is its own window now
+        and redraws itself, so only the pointer theme is left here.
 
         The idle step is the same story, found later and worse: the whole Power
         page wrote idle.* into settings.lua and NOTHING read it, because the
@@ -67,7 +68,6 @@ class Settings:
         self.save()
         steps = (
             ("theme",     (sys.executable, str(REPO / "theme" / "apply-theme.py"))),
-            ("dock",      (sys.executable, str(REPO / "scripts" / "dock.py"), "sync")),
             ("wallpaper", (str(REPO / "scripts" / "wallpaper.sh"), "sync-timer")),
             ("drives",    (sys.executable, str(REPO / "scripts" / "drives.py"), "sync")),
             ("idle",      (str(REPO / "scripts" / "idle-config.sh"),)),

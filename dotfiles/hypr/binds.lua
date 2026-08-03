@@ -198,8 +198,14 @@ hl.bind("XF86AudioRaiseVolume",  with_osd("wpctl set-volume -l 1.0 @DEFAULT_AUDI
 hl.bind("XF86AudioLowerVolume",  with_osd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-", "volume"), mk)
 hl.bind("XF86AudioMute",         with_osd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", "volume"), { locked = true })
 hl.bind("XF86AudioMicMute",      with_osd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle", "mic"), { locked = true })
-hl.bind("XF86MonBrightnessUp",   with_osd("brightnessctl -e4 -n2 set 5%+", "brightness"), mk)
-hl.bind("XF86MonBrightnessDown", with_osd("brightnessctl -e4 -n2 set 5%-", "brightness"), mk)
+-- ⚠️ `-c backlight` is not optional. Without a device class brightnessctl acts
+-- on whatever device it considers current, and on a machine with no screen
+-- backlight that is an LED — measured in a VM, where it answered
+-- `input1::numlock`. So on a desktop the brightness keys would dim the
+-- keyboard's num-lock light instead of doing nothing, which is worse than
+-- nothing. panel/quick_popup.py has always passed the class; these did not.
+hl.bind("XF86MonBrightnessUp",   with_osd("brightnessctl -c backlight -e4 -n2 set 5%+", "brightness"), mk)
+hl.bind("XF86MonBrightnessDown", with_osd("brightnessctl -c backlight -e4 -n2 set 5%-", "brightness"), mk)
 hl.bind("XF86AudioNext",         hl.dsp.exec_cmd("playerctl next"), { locked = true })
 hl.bind("XF86AudioPrev",         hl.dsp.exec_cmd("playerctl previous"), { locked = true })
 hl.bind("XF86AudioPlay",         hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })

@@ -1,5 +1,84 @@
 # Changelog
 
+## v1.2.0
+
+The dock became an application, and the graphics assumptions got sorted out for
+the machine this is actually for — a laptop, not a virtual machine.
+
+### The dock is one row of icons, not two features pretending to be one
+
+waybar's `wlr/taskbar` lists running windows and a separate module launches a
+pinned one, and the two know nothing about each other. So a pinned Brave that
+was running appeared twice; pinning from the dock was impossible, because waybar
+has no context menu; and the two module groups carry separate backgrounds, which
+is why a newly opened window's icon floated outside the dock's rounded island.
+
+None of that is a bug in waybar. A dock is an application, so it is one now —
+`panel/dock_window.py`, inside the panel daemon that was already paying GTK4's
+half-second startup once per session.
+
+- **one icon per application**, pinned or running or both, with dots underneath
+  for how many windows it has
+- left click focuses the most recently used window, or launches it
+- **right click** pins, unpins, closes everything, or picks a window by title
+- windows on other workspaces are listed too — a window you cannot see is
+  exactly the one the dock is for
+- the island does not grow: measured at 204x58 with no windows open and 204x58
+  with two
+
+Matching a window to an application is the part that needed care: a window's
+class is not its desktop id (`brave-browser` against `brave-origin`), so
+`initial_class` and `class` are both tried, normalised, and put through an alias
+table. Anything still unmatched gets an icon of its own rather than being
+silently dropped.
+
+`settings.py set` could not parse a list, so `dock.pinned=["kitty"]` used to
+store the *text*. Pinning would have been broken in a way that looked like it
+worked.
+
+### Graphics: what was measured and what was guessed
+
+- **Hybrid laptops were detected as Intel.** `detect_gpu` took the first
+  `lspci` line, and on an Intel+NVIDIA machine that is the iGPU — so the NVIDIA
+  branch never ran and the akmod that machine needs was never built. The
+  discrete card now wins whenever both are present.
+- **The brightness keys aimed at the wrong device.** `brightnessctl` without
+  `-c backlight` acts on whatever it considers current, which on a machine with
+  no screen backlight is an LED. The popup had always passed the class; the
+  keybinds had not.
+- **A VM's scale is now pinned to 1.** Inside a VM the EDID physical size comes
+  from the hypervisor rather than from a panel, so Hyprland's `auto` derives a
+  scale from fiction. Reproduced on demand with a headless output: it came up at
+  **scale 2**, which is exactly "everything is twice as big". `monitor_scale` is
+  a setting, so the Displays page overrides it either way.
+- **A VM whose 3D cannot be verified gets GTK4 on software rendering, and
+  nothing else.** VirtualBox presents VMSVGA, so there is no VirGL bit to read
+  and "accelerated" really means "no idea". GTK4 does not fall back by itself,
+  and everything here that is not the bar is GTK4 — including the daemon that
+  draws the dock and every popup in the bar. In software that costs a few small
+  windows; switching Mesa off wholesale would cost a working compositor.
+
+⚠️ All of this stays behind `IS_VM`. On real hardware the phase returns in its
+first line.
+
+### A stylesheet rule that applies to nothing now fails the build
+
+The dock's first stylesheet asked for `@barbg`, `@pillhover` and `@overlay1` —
+waybar's colour names. The panel's are `@popupbg`, `@surface1` and `@overlay0`.
+GTK drops a declaration whose colour is undefined without a word, so the dock
+had no background, no hover and invisible dots while every rule looked correct.
+`tests/test_css_colors.py` checks each stylesheet against the template that
+generates its colours, and runs in CI.
+
+### Also
+
+- The Displays page was verified against **two** screens for the first time,
+  using `hyprctl output create headless`. The "Active" switch appears only with
+  a second screen, as intended.
+- `settings.py get` on a key that does not exist printed a Python traceback.
+  A setting nobody has touched is the normal case, not a crash.
+
+
 ## v1.1.4
 
 Prompted by the first install on VirtualBox, where "everything is too big" had

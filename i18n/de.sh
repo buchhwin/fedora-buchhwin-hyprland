@@ -116,6 +116,7 @@ declare -gA MSG=(
 
     [sec_services]="Hintergrunddienste"
     [step_enable_units]="Benutzerdienste werden aktiviert"
+    [step_dock_retired]="Alter eigenstaendiger Dock-Dienst wird entfernt"
     [step_start_unit]="%s wird gestartet — war aktiviert, lief aber nicht"
     [warn_unit]="Dienst %s konnte nicht aktiviert werden"
     [step_generated_units]="Wallpaper-Timer und Laufwerks-Dienste werden erzeugt"
@@ -132,6 +133,9 @@ declare -gA MSG=(
     [step_vm_effects]="Aufwendige Effekte werden abgeschaltet"
     [warn_vm_effects]="Die Effekt-Einstellungen konnten nicht geschrieben werden"
     [ok_vm]="Für die virtuelle Maschine angepasst"
+    [step_vm_scale]="Bildschirm-Skalierung wird fuer diese virtuelle Maschine auf 1 gesetzt"
+    [warn_vm_scale]="Die Skalierung konnte nicht gesetzt werden"
+    [info_vm_unverifiable]="Dieser Hypervisor zeigt keine virtio-GPU, seine 3D-Faehigkeit war also nicht pruefbar. Hyprland bleibt unveraendert; GTK4 laeuft in Software, damit Panel und Einstellungsfenster sicher starten."
     [ok_vm_accelerated]="Virtuelle Maschine mit beschleunigter Grafik — volle Optik bleibt an"
     [info_vm_forced]="Software-Rendering wurde mit --software-render angefordert."
     [info_vm_hint_software]="Bleibt der Bildschirm nach dem Anmelden schwarz, war die 3D-Fähigkeit dieser Maschine nicht prüfbar — dann den Installer erneut mit --software-render laufen lassen."

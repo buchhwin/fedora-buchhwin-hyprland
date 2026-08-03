@@ -282,3 +282,69 @@
     transition: background-color 130ms ease;
 }
 .media-button:hover { background-color: @surface1; }
+
+/* ---------------------------------------------------------------------------
+ * The dock
+ *
+ * One island holding pinned applications AND running windows, because they are
+ * the same icons — see panel/dock_window.py for why that could not be a waybar.
+ *
+ * Nothing here changes SIZE on hover. A button that grows inside a fixed-height
+ * row pushes its neighbours around, which is what made the old dock's icons
+ * jump and smear as the pointer crossed them.
+ * ------------------------------------------------------------------------ */
+window.buchhwin-dock {
+    background: transparent;
+}
+
+/* ⚠️ @popupbg, @surface1, @overlay0 — the PANEL's colour names.
+ * @barbg, @pillhover and @overlay1 are waybar's, defined in
+ * ~/.config/waybar/colors.css, and this stylesheet loads
+ * ~/.config/buchhwin-panel/colors.css instead. GTK drops a declaration whose
+ * colour is undefined without a word, so the first version of these rules was
+ * a dock with no background, no hover and invisible dots — every rule applying
+ * cleanly to nothing. Checked against the generated file, not remembered. */
+.dock-row {
+    background-color: @popupbg;
+    border-radius: 18px;
+    padding: 6px 8px;
+    margin: 0;
+}
+
+.dock-button {
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+    border: none;
+    padding: 4px 6px;
+    margin: 0;
+    border-radius: 12px;
+    transition: background-color 150ms ease;
+}
+
+.dock-button:hover {
+    background-color: @surface1;
+}
+
+/* The dots under an icon say how many windows it has. Three at most: a dozen
+ * terminals should not turn into a dozen dots. */
+.dock-dots {
+    min-height: 4px;
+}
+
+.dock-dot {
+    min-width: 4px;
+    min-height: 4px;
+    border-radius: 2px;
+    background-color: @overlay0;
+}
+
+.dock-item.active .dock-dot {
+    background-color: @accent;
+}
+
+/* A pinned application that is not running keeps its icon at rest, so the dock
+ * reads as "these are yours" rather than "these are broken". */
+.dock-item:not(.running) image {
+    opacity: 0.75;
+}

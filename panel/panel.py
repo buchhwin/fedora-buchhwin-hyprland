@@ -88,6 +88,7 @@ class Panel(Adw.Application):
         if self._daemon:
             self.hold()
             self._build_all()
+            self._build_dock()
             self._listen()
         else:
             self._get(self._only).show()
@@ -100,6 +101,22 @@ class Panel(Adw.Application):
                 self._get(name)
             except Exception as exc:
                 print(f"panel: could not build {name}: {exc}", file=sys.stderr)
+
+    def _build_dock(self) -> None:
+        """The dock is not a popup: it is visible from login and never toggled.
+
+        Built here rather than in its own process for the reason this daemon
+        exists — GTK4 and libadwaita cost half a second to start, and a dock
+        that appears a moment after the desktop looks like something went wrong.
+        """
+        try:
+            from dock_window import Dock
+            self._dock = Dock(self)
+        except Exception as exc:
+            # A dock that cannot start must not take the popups with it: the
+            # clock, the sound and the network menus are the more important half
+            # of this process.
+            print(f"panel: the dock could not start: {exc}", file=sys.stderr)
 
     def _get(self, name: str):
         # The three osd-* names share one window: it is the same bar showing a
