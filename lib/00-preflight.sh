@@ -14,6 +14,20 @@ phase_preflight() {
         ver="$(. /etc/os-release && echo "${VERSION_ID:-}")"
     fi
     [[ "$id" == "fedora" ]] || die "$(msg err_not_fedora "${id:-unknown}")"
+
+    # --- rpm-ostree ----------------------------------------------------------
+    # And it has to be checked SEPARATELY, because the test above passes.
+    # fedora-release.spec builds CoreOS' os-release by APPENDING
+    # VARIANT_ID=coreos to the ordinary one — ID stays "fedora". Silverblue,
+    # Kinoite and Bazzite are the same story. So the run would report a cheerful
+    # "Fedora 44", spend three phases looking like progress, and then die on the
+    # first of the fifty-one dnf calls in lib/.
+    #
+    # /run/ostree-booted is ostree's own marker for a booted deployment; /ostree
+    # is the repository it boots from.
+    if [[ -e /run/ostree-booted || -d /ostree ]]; then
+        die "$(msg err_ostree)"
+    fi
     ok "$(msg ok_fedora "$ver")"
 
     if [[ "$ver" != "$TARGET_FEDORA" ]]; then

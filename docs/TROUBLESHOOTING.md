@@ -104,6 +104,27 @@ see what went wrong, run it in a terminal where you can read the error:
 `GtkWindow is not a layer surface` means the preload did not take: the popup
 still opens, but as an ordinary window rather than anchored under the bar.
 
+## The session starts to a black screen in a virtual machine
+
+Run the installer again with `--software-render`, then log in again:
+
+```bash
+./install.sh --software-render
+```
+
+The installer decides for itself whether a VM can render in hardware, and there
+is one case it cannot decide: it recognises **virtio-gpu** and reads the VirGL
+feature bit off it, but a hypervisor that presents something else — VirtualBox
+presents VMSVGA — is treated as real hardware, because from sysfs that is also
+what real hardware looks like. There is no way to ask Mesa before a compositor
+exists, so this is a switch rather than a guess. The phase prints which branch
+it took and points at the flag.
+
+`--software-render` writes `~/.config/uwsm/env-hyprland`, which pins Mesa to
+llvmpipe, and switches blur, shadows, animations and transparency off — the
+same thing that happens automatically in a VM without VirGL. To undo it, run
+the installer once without the flag.
+
 ## Everything is slow, animations stutter
 
 In a virtual machine **without** VirGL that is expected: rendering happens on

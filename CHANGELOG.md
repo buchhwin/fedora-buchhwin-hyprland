@@ -1,5 +1,40 @@
 # Changelog
 
+## v1.1.3
+
+Two guards, both for people testing this in a virtual machine before putting it
+on a real one.
+
+### It refuses to start on rpm-ostree
+
+Fedora CoreOS, Silverblue and Kinoite have no dnf; packages are layered with
+`rpm-ostree` and every change needs a reboot. The installer calls dnf fifty-one
+times.
+
+The check has to be separate from the distribution check, because that one
+passes: `fedora-release.spec` builds CoreOS' os-release by *appending*
+`VARIANT_ID=coreos` to the ordinary one, so `ID` stays `fedora`. Without this,
+the run reported a cheerful "Fedora 44", spent three phases looking like
+progress, and then died on the first dnf call. Detected via
+`/run/ostree-booted`, ostree's own marker for a booted deployment.
+
+### --software-render, for a VM whose 3D cannot be verified
+
+The VM phase reads the VirGL feature bit off **virtio-gpu** to decide whether
+hardware rendering is available. A hypervisor presenting anything else —
+VirtualBox presents VMSVGA — is therefore treated as real hardware, because
+from sysfs that is exactly what real hardware looks like. If its 3D does not
+work, Hyprland finds no EGL device and draws nothing at all.
+
+Mesa cannot be asked before a compositor exists, so this is a documented switch
+rather than a better guess: `--software-render` writes the same
+`env-hyprland` and switches off the same effects that a VM without VirGL gets
+automatically, on any machine. Running the installer once without it undoes it.
+
+The phase now also says which branch it took, and names the flag — because
+"accelerated" can mean "could not be checked", and somebody looking at a black
+screen needs to know which of the two happened.
+
 ## v1.1.2
 
 Everything here was found by building a machine from nothing and looking at it:

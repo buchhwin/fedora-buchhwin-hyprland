@@ -22,6 +22,7 @@ declare -gA MSG=(
     # --- preflight -----------------------------------------------------------
     [sec_preflight]="Checking the system"
     [err_not_fedora]="This installer is for Fedora. Detected: %s"
+    [err_ostree]="This is an rpm-ostree system (Fedora CoreOS, Silverblue, Kinoite). It has no dnf: packages are layered with rpm-ostree and each change needs a reboot. Install Fedora Server, or any Fedora that has no desktop yet."
     [ok_fedora]="Fedora %s"
     [warn_fedora_version]="Fedora %s found, this release targets Fedora %s. Package names may differ."
     [ask_continue_anyway]="Continue anyway?"
@@ -146,6 +147,8 @@ declare -gA MSG=(
     [warn_vm_effects]="The effect settings could not be written"
     [ok_vm]="Adjusted for the virtual machine"
     [ok_vm_accelerated]="Virtual machine with accelerated rendering — keeping the full look"
+    [info_vm_forced]="Software rendering was requested with --software-render."
+    [info_vm_hint_software]="If the session starts to a black screen, this machine's 3D could not be verified — run the installer again with --software-render."
 
     # --- packages ------------------------------------------------------------
     [warn_missing_list]="Package list not found: %s"

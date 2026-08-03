@@ -28,6 +28,7 @@ NO_FIREWALL="${NO_FIREWALL:-0}"
 PROFILE="${PROFILE:-work}"
 GPU="${GPU:-auto}"
 LANG_CHOICE="${LANG_CHOICE:-}"
+SOFTWARE_RENDER="${SOFTWARE_RENDER:-0}"
 
 # ---------------------------------------------------------------------------
 # Colours — only when stdout is a terminal, so logs stay readable

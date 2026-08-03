@@ -12,10 +12,20 @@
 # node, so Hyprland's renderer fails to initialise and NOTHING draws at all.
 # The workaround for having no GPU was what prevented using the one we had.
 
+# ⚠️ gpu_is_accelerated() answers "yes" for any machine with no virtio GPU at
+# all, because that is real hardware — or a hypervisor whose graphics it cannot
+# interrogate. VirtualBox is the second case: it presents VMSVGA, not virtio, so
+# the check waves it through as accelerated whether or not its 3D actually
+# works. There is no reliable way to ask Mesa before a compositor exists, so
+# --software-render is the honest answer: a switch, documented, rather than a
+# guess that fails as a black screen.
 phase_vm_tweaks() {
-    (( IS_VM )) || return 0
-
-    if gpu_is_accelerated; then
+    if (( SOFTWARE_RENDER )); then
+        section "$(msg sec_vm)"
+        info "$(msg info_vm_forced)"
+    elif (( ! IS_VM )); then
+        return 0
+    elif gpu_is_accelerated; then
         section "$(msg sec_vm)"
         # A machine that gained VirGL after an earlier install still carries the
         # old file, and it would keep the screen black. Clear it out.
@@ -23,11 +33,15 @@ phase_vm_tweaks() {
             rm -f "$CONFIG_HOME/uwsm/env-hyprland"
         fi
         ok "$(msg ok_vm_accelerated)"
+        # Said out loud, because "accelerated" here can also mean "could not be
+        # checked", and somebody staring at a black screen needs to know which
+        # branch ran.
+        info "$(msg info_vm_hint_software)"
         return 0
+    else
+        section "$(msg sec_vm)"
+        info "$(msg info_vm_explain)"
     fi
-
-    section "$(msg sec_vm)"
-    info "$(msg info_vm_explain)"
 
     # Software rendering hints. Mesa picks llvmpipe by itself when there is no
     # accelerated device, but being explicit avoids a silent fallback to an

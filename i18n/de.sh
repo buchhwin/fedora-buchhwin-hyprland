@@ -16,6 +16,7 @@ declare -gA MSG=(
 
     [sec_preflight]="System wird geprüft"
     [err_not_fedora]="Dieses Skript ist für Fedora. Erkannt wurde: %s"
+    [err_ostree]="Das ist ein rpm-ostree-System (Fedora CoreOS, Silverblue, Kinoite). Es hat kein dnf: Pakete werden mit rpm-ostree überlagert, und jede Änderung braucht einen Neustart. Bitte Fedora Server installieren, oder ein Fedora ohne Desktop."
     [ok_fedora]="Fedora %s"
     [warn_fedora_version]="Fedora %s gefunden, diese Fassung ist für Fedora %s gedacht. Paketnamen können abweichen."
     [ask_continue_anyway]="Trotzdem fortfahren?"
@@ -132,6 +133,8 @@ declare -gA MSG=(
     [warn_vm_effects]="Die Effekt-Einstellungen konnten nicht geschrieben werden"
     [ok_vm]="Für die virtuelle Maschine angepasst"
     [ok_vm_accelerated]="Virtuelle Maschine mit beschleunigter Grafik — volle Optik bleibt an"
+    [info_vm_forced]="Software-Rendering wurde mit --software-render angefordert."
+    [info_vm_hint_software]="Bleibt der Bildschirm nach dem Anmelden schwarz, war die 3D-Fähigkeit dieser Maschine nicht prüfbar — dann den Installer erneut mit --software-render laufen lassen."
 
     [warn_missing_list]="Paketliste nicht gefunden: %s"
     [info_all_present]="Alles bereits installiert"

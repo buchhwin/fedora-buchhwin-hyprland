@@ -47,6 +47,12 @@ Usage: ./install.sh [options]
                          "showcase" is slower with more blur for screenshots.
   --gpu amd|nvidia|intel|none|auto
                          Graphics driver branch. Default: auto-detect.
+  --software-render      Render on the CPU: switch blur, shadows, animations
+                         and transparency off and pin Mesa to llvmpipe. Use
+                         this when the session starts to a black screen in a
+                         virtual machine whose 3D the installer cannot verify
+                         — VirtualBox in particular. Detected automatically
+                         for a VM without VirGL.
   --flavour NAME         Palette: mocha, latte, nord, gruvbox, dracula,
                          tokyo-night, rose-pine, ... (theme/palettes/).
   --accent NAME          Accent colour; which ones exist depends on the
@@ -76,6 +82,7 @@ while [[ $# -gt 0 ]]; do
         --no-firewall) NO_FIREWALL=1 ;;
         --profile)     PROFILE="${2:?}"; shift ;;
         --gpu)         GPU="${2:?}"; shift ;;
+        --software-render) SOFTWARE_RENDER=1 ;;
         --flavour)     THEME_FLAVOUR="${2:?}"; FLAVOUR_SET=1; shift ;;
         --accent)      THEME_ACCENT="${2:?}"; ACCENT_SET=1; shift ;;
         --lang)        LANG_CHOICE="${2:?}"; shift ;;
@@ -88,6 +95,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 export DRY_RUN UNATTENDED MINIMAL NO_FLATPAK NO_TWEAKS NO_FIREWALL PROFILE GPU LANG_CHOICE
+export SOFTWARE_RENDER="${SOFTWARE_RENDER:-0}"
 export WITH_GROUPS_STR="${WITH_GROUPS[*]:-}"
 export THEME_FLAVOUR THEME_ACCENT TARGET_FEDORA IS_VM
 # Whether the palette came from the command line. The setup phase asks only
