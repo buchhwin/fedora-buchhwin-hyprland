@@ -51,6 +51,11 @@ class Settings:
         unit. Both ran in the installer and nowhere else, so changing them in
         this window did exactly nothing.
 
+        The idle step is the same story, found later and worse: the whole Power
+        page wrote idle.* into settings.lua and NOTHING read it, because the
+        generator its own config file named had never been written. Dim, lock,
+        screen-off and suspend were decoration.
+
         `systemctl --user reload`, NOT reload-or-restart. The bar's unit has an
         ExecReload (SIGUSR2), and a restart would kill everything in the unit's
         cgroup — which includes this very window when it was opened from the
@@ -65,6 +70,7 @@ class Settings:
             ("dock",      (sys.executable, str(REPO / "scripts" / "dock.py"), "sync")),
             ("wallpaper", (str(REPO / "scripts" / "wallpaper.sh"), "sync-timer")),
             ("drives",    (sys.executable, str(REPO / "scripts" / "drives.py"), "sync")),
+            ("idle",      (str(REPO / "scripts" / "idle-config.sh"),)),
             ("hyprland",  ("hyprctl", "reload")),
             ("bar",       ("systemctl", "--user", "reload", "buchhwin-bar.service")),
         )

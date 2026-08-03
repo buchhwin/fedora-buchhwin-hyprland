@@ -287,15 +287,35 @@ WantedBy=graphical-session.target'
     run python3 "$REPO_DIR/scripts/dock.py" sync || warn "$(msg warn_unit dock)"
 
     step "$(msg step_enable_units)"
+    local units=(buchhwin-keyring buchhwin-clipboard buchhwin-clipboard-image
+                 buchhwin-wallpaper buchhwin-bar buchhwin-notifications
+                 buchhwin-idle buchhwin-polkit buchhwin-nightlight
+                 buchhwin-panel buchhwin-usb buchhwin-minimize
+                 buchhwin-appusage)
     local u
-    for u in buchhwin-keyring buchhwin-clipboard buchhwin-clipboard-image \
-             buchhwin-wallpaper buchhwin-bar buchhwin-notifications \
-             buchhwin-idle buchhwin-polkit buchhwin-nightlight \
-             buchhwin-panel buchhwin-usb buchhwin-minimize \
-             buchhwin-appusage; do
+    for u in "${units[@]}"; do
         run_quiet systemctl --user enable "$u.service" || warn "$(msg warn_unit "$u")"
     done
     run_quiet systemctl --user daemon-reload || true
+
+    # Enabling starts nothing, and during the first install that is correct:
+    # there is no Wayland display yet, and every one of these would fail on the
+    # spot. But this same phase runs again from INSIDE a live session on every
+    # `bhctl update`, and there a unit added to an already-active target just
+    # sits at "enabled" until the next login — silently, because an enabled unit
+    # looks finished.
+    #
+    # Measured on the test VM: buchhwin-idle was enabled with an EMPTY journal
+    # while all twelve others were running. So the idle manager had never run
+    # once on that machine, and dim, lock and screen-off could not have worked
+    # however well they were configured.
+    if systemctl --user is-active graphical-session.target >/dev/null 2>&1; then
+        for u in "${units[@]}"; do
+            systemctl --user is-active "$u.service" >/dev/null 2>&1 && continue
+            step "$(msg step_start_unit "$u")"
+            run_quiet systemctl --user start "$u.service" || warn "$(msg warn_unit "$u")"
+        done
+    fi
 
     # Bluetooth is a system service and off by default on Fedora Server.
     if rpm -q bluez >/dev/null 2>&1 || (( DRY_RUN )); then

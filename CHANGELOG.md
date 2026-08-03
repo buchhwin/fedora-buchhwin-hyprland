@@ -1,5 +1,66 @@
 # Changelog
 
+## v1.1.1
+
+Everything that dims, locks, blanks or suspends the screen was broken, in three
+independent ways that each hid the next. None of it is visible in a virtual
+machine, which is why it survived to here — this release exists because the
+desktop is about to be installed on real hardware.
+
+### The screen never turned itself off
+
+`hypridle.conf` still asked for `hyprctl dispatch dpms off`. Under the Lua
+config provider that is a **syntax error**, and hyprctl reports it on stdout and
+then **exits 0** — asking it for `dpms on` answers:
+
+    error: [string "return hl.dispatch(dpms on)"]:1: ')' expected near 'on'
+    $ echo $?
+    0
+
+So the fifteen-minute blank never happened, the DPMS-restore after resume never
+happened, and nothing anywhere said so. The correct call is
+`hyprctl dispatch 'hl.dsp.dpms({ action = "off" })'`, taken from the running
+compositor and from `ConfigActions.hpp`, not from a wiki.
+
+This was the eleventh site of a bug fixed in ten places for v1.0.0. It survived
+because it lives in a `.conf` file, so every search for `.lua` and `.sh` walked
+past it. `tests/test-dispatch.sh` now fails the build on any `hyprctl dispatch`
+that is neither Lua nor a backticked mention in a comment — whatever the file
+type.
+
+### The Power page wrote to nobody
+
+The settings app's four idle timings went into `settings.lua`, and the generator
+that was supposed to turn them into `hypridle.conf` **had never been written**.
+The file's own header named a script that did not exist, and the installed
+config was a symlink to the template in the repository — so every slider moved,
+saved, and changed nothing. There was no suspend listener at all, which made
+"Suspend after" unreachable by construction.
+
+`scripts/idle-config.sh` now generates the file from `settings.lua`, the way
+`dock.py` generates the dock. It runs from the installer, from Apply in the
+settings window, from `bhctl set`/`reload.sh` and from `bhctl restore`. Zero
+means that step is left out rather than written as `timeout = 0`. Suspend gets
+a listener when it is asked for.
+
+### The idle manager had never started
+
+On the test machine `buchhwin-idle.service` was `enabled` with an **empty
+journal**, while all twelve of its neighbours were running. `systemctl enable`
+starts nothing, which is right during the first install — there is no Wayland
+display yet — but this phase also runs from inside a live session on every
+`bhctl update`, and there a newly enabled unit waits for the next login while
+looking perfectly healthy. The phase now starts enabled units that are not
+running when a graphical session is active, and says which ones and why.
+
+### Also
+
+- The dim step used `brightnessctl -s set 10`: no device class, so on a machine
+  with no screen backlight it turns down an LED — measured in a VM, the current
+  device was `input1::numlock`. And no `%`, so `10` is a raw value: 10% of a
+  panel whose maximum is 100, and effectively off on one whose maximum is 19200.
+  Now `-c backlight -s set 10%`.
+
 ## v1.1.0
 
 Prompted by an install that ended with two warnings and two errors. Every

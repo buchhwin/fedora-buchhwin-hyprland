@@ -119,6 +119,8 @@ declare -gA MSG=(
     [warn_missing_src]="Missing in the repository: %s"
     [step_settings_seed]="Creating settings.lua from the example"
     [info_settings_kept]="Existing settings.lua kept"
+    [step_idle]="Generating the idle configuration from settings.lua"
+    [warn_idle]="hypridle.conf could not be generated — dim, lock and screen-off keep their defaults"
     [step_bhctl]="Installing the bhctl command"
     [step_session_env]="Writing the session environment"
     [ok_dotfiles]="Configuration in place"
@@ -126,6 +128,7 @@ declare -gA MSG=(
     # --- services ------------------------------------------------------------
     [sec_services]="Background services"
     [step_enable_units]="Enabling user services"
+    [step_start_unit]="Starting %s, which was enabled but not running"
     [warn_unit]="Service %s could not be enabled"
     [step_generated_units]="Generating the wallpaper timer and drive units"
     [step_menu_cleanup]="Hiding menu entries nobody launches by hand"

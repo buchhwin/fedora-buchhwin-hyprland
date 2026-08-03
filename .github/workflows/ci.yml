@@ -29,6 +29,12 @@ jobs:
         # both return the default on purpose and would pass while broken.
         run: python3 tests/test_questions.py
 
+      - name: Hyprland dispatchers speak Lua
+        # The old word form is a syntax error that hyprctl prints to stdout and
+        # exits 0 for, so it fails silently and forever. It hid in a .conf file
+        # for three releases because it was neither .lua nor .sh.
+        run: ./tests/test-dispatch.sh
+
   python:
     name: Python
     runs-on: ubuntu-latest

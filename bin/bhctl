@@ -262,13 +262,14 @@ cmd_restore() {
     tar xzf "$src" -C "$HOME" || { fail "could not unpack $src"; return 1; }
 
     # settings.lua alone changes nothing visible: the colours, the bar CSS, the
-    # wallpaper timer and the drive units are all generated from it. Re-render
-    # them, or the restore appears to have done nothing.
+    # wallpaper timer, the drive units and the idle timings are all generated
+    # from it. Re-render them, or the restore appears to have done nothing.
     step "regenerating"
     python3 "$REPO_DIR/theme/apply-theme.py" >/dev/null 2>&1 \
         || warn "theme could not be re-rendered"
     "$REPO_DIR/scripts/wallpaper.sh" sync-timer >/dev/null 2>&1 || true
     python3 "$REPO_DIR/scripts/drives.py" sync >/dev/null 2>&1 || true
+    "$REPO_DIR/scripts/idle-config.sh" >/dev/null 2>&1 || true
 
     hyprctl reload >/dev/null 2>&1 || true
     systemctl --user restart buchhwin-bar.service >/dev/null 2>&1 || true

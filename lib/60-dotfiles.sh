@@ -34,7 +34,9 @@ phase_dotfiles() {
     link_config dotfiles/hypr/hyprland.lua   "$CONFIG_HOME/hypr/hyprland.lua"
     link_config dotfiles/hypr/binds.lua      "$CONFIG_HOME/hypr/binds.lua"
     link_config dotfiles/hypr/rules.lua      "$CONFIG_HOME/hypr/rules.lua"
-    link_config dotfiles/hypr/hypridle.conf  "$CONFIG_HOME/hypr/hypridle.conf"
+
+    # hypridle.conf is GENERATED further down, not linked: its timings come from
+    # settings.lua, and it can only be written once that file exists.
 
     # --- bar, menus, notifications ------------------------------------------
     link_config dotfiles/waybar/config.jsonc "$CONFIG_HOME/waybar/config.jsonc"
@@ -79,6 +81,14 @@ phase_dotfiles() {
     else
         info "$(msg info_settings_kept)"
     fi
+
+    # --- idle manager --------------------------------------------------------
+    # Generated from the settings.lua just seeded above, the way the dock and
+    # the wallpaper timer are. It used to be a plain symlink to the file in the
+    # repository, which meant the four timings on the settings app's Power page
+    # were written to settings.lua and read by nothing at all.
+    step "$(msg step_idle)"
+    run "$REPO_DIR/scripts/idle-config.sh" || warn "$(msg warn_idle)"
 
     # --- the bhctl command ---------------------------------------------------
     step "$(msg step_bhctl)"
