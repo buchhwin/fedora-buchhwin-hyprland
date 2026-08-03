@@ -112,7 +112,7 @@ def build(win):
 def _build_screen(win, p, screen: dict, total: int) -> None:
     title = f"{screen['name']} — {screen['desc']}".strip(" —")
     g = group(p, GLib.markup_escape_text(title),
-              _("{w}×{h} at {x},{y}").format(w=screen["width"], h=screen["height"],
+              _("{w}x{h} at {x},{y}").format(w=screen["width"], h=screen["height"],
                                              x=screen["x"], y=screen["y"]))
 
     modes = screen.get("modes") or [screen["mode"]]
