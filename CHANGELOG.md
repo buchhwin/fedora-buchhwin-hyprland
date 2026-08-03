@@ -1,5 +1,68 @@
 # Changelog
 
+## v1.1.4
+
+Prompted by the first install on VirtualBox, where "everything is too big" had
+no answer inside the desktop at all.
+
+### Resolution, refresh rate, scale and rotation are settable
+
+The Displays page only ever listed the screens. Its own subtitle said so —
+"change them in settings.lua under monitors" — so the one setting most likely
+to be wrong on a new machine was reachable with a text editor and nowhere else.
+
+It now offers, per screen, the resolution and refresh rate (from what the screen
+reports it can do), the scale, the rotation, variable refresh rate, and — only
+when a second screen exists — a switch to turn one off. `scripts/monitors.py`
+grew `show` and `set` to back it; everything still goes through settings.lua and
+a reload, because `hyprctl keyword monitor` does nothing under the Lua config
+provider.
+
+**Every change is followed by a countdown that puts it back unless it is
+confirmed.** A mode the screen cannot show leaves a display nobody can read, and
+the button to undo it would be on that display.
+
+Two things had to be measured rather than assumed:
+
+- Hyprland **reports** its modes as `1280x800@74.99Hz` and **accepts** them as
+  `1280x800@74.99`. Handing the reported string straight back produces a line
+  Hyprland silently discards, falling back to `preferred` — so picking a mode
+  from a list of what the screen supports would have quietly given you a
+  different one.
+- The rotation is an enum, not degrees: `--transform 90` comes back as
+  `transform=1`.
+
+The monitor fields the Lua config accepts (`transform`, `vrr`, `mirror`,
+`bitdepth`, …) come from Hyprland's own type stubs,
+`/usr/share/hypr/stubs/hl.meta.lua`, class `HL.MonitorSpec` — which documents
+the whole Lua API and is a better source than the wiki for exactly this.
+
+### "No displays reported" was sometimes a lie
+
+`hyprctl` does **not** find the running compositor by itself: without
+`HYPRLAND_INSTANCE_SIGNATURE` it answers "is hyprland running?" and every query
+came back empty. The settings window inherits that variable when it is started
+from the session and not otherwise — and an empty list was then shown as "no
+displays", which reads as "this machine has no screens" rather than "I could not
+ask". monitors.py now finds the instance the way scripts/minimize.py already
+did, and fails loudly when there really is nothing to talk to.
+
+### bhctl doctor was blind to the two services whose absence is invisible
+
+It checked bar, notifications, clipboard, wallpaper, idle and polkit — but not
+**panel** and not **dock**. The panel daemon is what every popup in the bar
+talks to through a FIFO, so when it is dead the bar still looks perfectly
+correct and simply no click does anything. Inside a session that is now a
+reported problem, not an "inactive (normal)".
+
+### --software-render also switches GTK4 off GL
+
+GTK4 draws through GSK, which picks OpenGL and does not fall back on its own.
+Everything here that is not the bar is GTK4 — the settings window and the panel
+daemon. `GSK_RENDERER=cairo` is now written alongside the Mesa variables; the
+value is taken from `GSK_RENDERER=help` on the installed GTK, which lists
+broadway, cairo, opengl, gl and vulkan and warns-and-ignores anything else.
+
 ## v1.1.3
 
 Two guards, both for people testing this in a virtual machine before putting it

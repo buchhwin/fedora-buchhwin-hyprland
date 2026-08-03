@@ -170,10 +170,15 @@ cmd_doctor() {
         fail "settings.lua cannot be read"; (( problems++ ))
     fi
 
+    # buchhwin-panel and buchhwin-dock were missing from this list, and they are
+    # the two whose absence is hardest to recognise from the outside: the panel
+    # daemon is what every popup in the bar talks to through a FIFO, so when it
+    # is dead the bar still LOOKS right and simply no click does anything. The
+    # first person to hit that got "no problems found" from this very command.
     step "user services"
     local u
-    for u in buchhwin-bar buchhwin-notifications buchhwin-clipboard \
-             buchhwin-wallpaper buchhwin-idle buchhwin-polkit; do
+    for u in buchhwin-bar buchhwin-panel buchhwin-dock buchhwin-notifications \
+             buchhwin-clipboard buchhwin-wallpaper buchhwin-idle buchhwin-polkit; do
         local state; state="$(systemctl --user is-active "$u.service" 2>/dev/null || true)"
         case "$state" in
             active)   : ;;
@@ -181,6 +186,15 @@ cmd_doctor() {
             *)        warn "$u: $state"; (( problems++ )) ;;
         esac
     done
+
+    # Inside a session an inactive panel is not "normal", it is the bug above.
+    # Checked separately so the message can say what it costs.
+    if [[ -n "${WAYLAND_DISPLAY:-}" ]] \
+       && [[ "$(systemctl --user is-active buchhwin-panel.service 2>/dev/null)" != active ]]; then
+        fail "buchhwin-panel is not running — no popup in the bar will open"
+        info "journalctl --user -u buchhwin-panel -n 30"
+        (( problems++ ))
+    fi
 
     step "fonts"
     # The Consolas trap from the old setup: fontconfig silently substitutes a

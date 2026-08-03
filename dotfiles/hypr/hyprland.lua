@@ -47,17 +47,32 @@ local showcase = (prof == "showcase")
 --
 -- The catch-all entry stays LAST so any screen not listed still lights up
 -- instead of staying black.
+--- The field names come from Hyprland's own type stubs,
+--- /usr/share/hypr/stubs/hl.meta.lua, class HL.MonitorSpec — which documents the
+--- whole Lua API and is a far better source than the wiki for exactly this.
+--- Note it is `disabled`, not `enabled`.
 for _, m in ipairs(S.monitors or {}) do
+    local out = m.desc and ("desc:" .. m.desc) or (m.output or "")
     if m.enabled == false then
-        hl.monitor({ output = m.desc and ("desc:" .. m.desc) or (m.output or ""),
-                     disabled = true })
+        hl.monitor({ output = out, disabled = true })
     else
-        hl.monitor({
-            output   = m.desc and ("desc:" .. m.desc) or (m.output or ""),
+        local spec = {
+            output   = out,
             mode     = m.mode or "preferred",
             position = m.position or "auto",
             scale    = m.scale or "auto",
-        })
+        }
+        --- Only written when the settings actually carry one. Tested against nil
+        --- and not with `m.transform and ...`, because 0 and false are both
+        --- meaningful values here and both are falsy in Lua — the same trap that
+        --- once turned every switched-off setting into nil.
+        if m.transform ~= nil then spec.transform = m.transform end
+        if m.vrr ~= nil then spec.vrr = m.vrr end
+        if m.bitdepth ~= nil then spec.bitdepth = m.bitdepth end
+        if m.mirror and m.mirror ~= "" and m.mirror ~= "none" then
+            spec.mirror = m.mirror
+        end
+        hl.monitor(spec)
     end
 end
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })

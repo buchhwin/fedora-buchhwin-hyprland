@@ -55,6 +55,18 @@ phase_vm_tweaks() {
 export WLR_RENDERER_ALLOW_SOFTWARE=1
 export LIBGL_ALWAYS_SOFTWARE=1
 export AQ_NO_MODIFIERS=1
+
+# GTK4 draws through GSK, which picks OpenGL by default and does NOT fall back
+# on its own when that turns out to be unusable. Everything in this desktop that
+# is not the bar is GTK4 — the settings window and, more importantly, the
+# resident panel daemon that every popup in the bar talks to. When it cannot
+# start, the bar still looks perfectly fine and no click does anything at all.
+#
+# "cairo" is GTK's own software renderer, and the name is taken from
+# `GSK_RENDERER=help` on this GTK, which lists broadway, cairo, opengl, gl and
+# vulkan — anything else is warned about and ignored, which would look exactly
+# like "the workaround did not help".
+export GSK_RENDERER=cairo
 EOF
     fi
 
