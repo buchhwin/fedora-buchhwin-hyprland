@@ -177,6 +177,21 @@ tooltip label { color: @text; padding: 4px; }
     padding: 0 4px;
 }
 
+/* The dock's centre island carries no background of its own.
+ *
+ * `.modules-center` above paints a rounded @barbg pill around whatever group
+ * it holds — including a group holding nothing. With no windows open, the
+ * dock's centred taskbar therefore drew a small dark capsule in the middle of
+ * the screen, hovering over the wallpaper with nothing in it. The dock's own
+ * pills (the pinned icons, and each taskbar button) provide their backgrounds
+ * individually, so the group does not need one. Scoped by the window class the
+ * dock sets via its `name` key: the top bar's islands must keep theirs. */
+window#waybar.dock .modules-center,
+window#waybar.dock .modules-right {
+    background-color: transparent;
+    padding: 0;
+}
+
 #taskbar button {
     padding: 0 8px;
     margin: 4px 2px;
@@ -202,12 +217,23 @@ tooltip label { color: @text; padding: 4px; }
     opacity: 0.55;
 }
 
-/* Pinned launchers are custom modules, so they need the pill treatment the
- * named modules get above; without this they had no background at all. */
+/* Pinned launchers need the pill treatment the named modules get above;
+ * without this they have no background at all.
+ *
+ * They are `image` modules now, one instance each, and waybar names an
+ * instanced module by its TYPE with the instance as a style CLASS — so the
+ * selector is #image.pin0, not #image-pin0 and not #custom-pin0. Checked by
+ * colouring them from the stylesheet and looking, because the old selectors
+ * kept applying cleanly to nothing at all.
+ *
+ * Less horizontal padding than the text pills had: 12px around a letter reads
+ * as a button, 12px around a 32-pixel icon reads as a gap. */
+#image.pin0, #image.pin1, #image.pin2, #image.pin3,
+#image.pin4, #image.pin5, #image.pin6, #image.pin7,
 #custom-pin0, #custom-pin1, #custom-pin2, #custom-pin3,
 #custom-pin4, #custom-pin5, #custom-pin6, #custom-pin7,
 #custom-drives {
-    padding: 0 12px;
+    padding: 0 6px;
     margin: 5px 3px;
     border-radius: 12px;
     color: @text;
@@ -215,6 +241,15 @@ tooltip label { color: @text; padding: 4px; }
     transition: background-color 150ms ease, color 150ms ease;
 }
 
+/* The letter fallback keeps the wider padding: it really is a text pill. */
+#custom-pin0, #custom-pin1, #custom-pin2, #custom-pin3,
+#custom-pin4, #custom-pin5, #custom-pin6, #custom-pin7,
+#custom-drives {
+    padding: 0 12px;
+}
+
+#image.pin0:hover, #image.pin1:hover, #image.pin2:hover, #image.pin3:hover,
+#image.pin4:hover, #image.pin5:hover, #image.pin6:hover, #image.pin7:hover,
 #custom-pin0:hover, #custom-pin1:hover, #custom-pin2:hover, #custom-pin3:hover,
 #custom-pin4:hover, #custom-pin5:hover, #custom-pin6:hover, #custom-pin7:hover,
 #custom-drives:hover {

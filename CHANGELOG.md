@@ -1,5 +1,58 @@
 # Changelog
 
+## v1.1.2
+
+Everything here was found by building a machine from nothing and looking at it:
+a fresh VM, the README's own command, and then a screenshot. None of it shows up
+in a log, and none of it would have been found by reading the code.
+
+### The dock shows applications, not initials
+
+Pinned launchers drew the first LETTER of the entry id — a dock captioned
+"B K N C" — on the reasoning that "a custom module cannot draw a .desktop icon,
+only wlr/taskbar can". The first half is true and the conclusion was wrong:
+waybar has an `image` module (waybar-image(5)) that draws anything GdkPixbuf can
+open, which includes Papirus' SVGs. It was never a limitation, only an unchecked
+assumption.
+
+Resolving the icon needed two things the obvious version gets wrong:
+
+- **The icon name is not the application name.** Nemo's entry asks for
+  `system-file-manager`, VS Code's for `vscode`. Looking up the id finds nothing
+  for either, silently.
+- **Papirus-Dark does not inherit from Papirus.** Fedora's copy declares
+  `Inherits=breeze-dark,hicolor` while carrying only some application icons
+  itself. Following the declared chain misses most of them, so the search order
+  is an explicit list.
+
+Missing icons fall back to the generic `application-x-executable` rather than to
+a hole in the dock, and the letter survives only for a machine with no icon
+theme at all.
+
+### The dock had an empty capsule floating in it
+
+`.modules-center` paints its rounded background even when the group is empty, so
+with no windows open the centred taskbar drew a small dark capsule in the middle
+of the screen. The dock now sets `"name": "dock"` — waybar turns that into a CSS
+class — and drops the background for its own centre group. The top bar keeps
+its islands.
+
+### A red warning greeted every login
+
+"Hyprland was started without start-hyprland. This is highly not recommended
+unless you are in a debugging environment." The session is started by uwsm, which
+is the supported way to run Hyprland under systemd; start-hyprland is the other
+supported launcher. Running both to silence a warning would be the wrong trade,
+so `misc:disable_watchdog_warning` is set — the name read off the running
+compositor with `hyprctl descriptions -j`.
+
+### Menus offered the same answer twice
+
+On a German machine the keyboard question listed `de` as options 1 AND 3, both
+labelled "(default)"; the timezone question did the same with Europe/Berlin.
+Every caller passes the current value first and then a short list that often
+already contains it. `ask_choice` now drops duplicates, keeping the first.
+
 ## v1.1.1
 
 Everything that dims, locks, blanks or suspends the screen was broken, in three

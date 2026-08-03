@@ -187,6 +187,25 @@ hl.config({
         disable_hyprland_logo     = true,
         disable_splash_rendering  = true,
 
+        -- The third of Hyprland's own popups, and the only one that is RED:
+        -- "Hyprland was started without start-hyprland. This is highly not
+        -- recommended unless you are in a debugging environment." It greeted
+        -- every login on a fresh install — seen in a screenshot of one, not
+        -- reasoned about.
+        --
+        -- The session is started by uwsm (`uwsm start -S -F /usr/bin/Hyprland`
+        -- in hyprland-buchhwin.desktop), which is the supported way to run
+        -- Hyprland under systemd and the reason wayland-wm@Hyprland.service
+        -- exists at all. start-hyprland is the OTHER supported launcher; it
+        -- supplies a watchdog file descriptor that uwsm does not. Running both
+        -- session managers to silence a warning would be the wrong trade, so
+        -- the warning is switched off instead.
+        --
+        -- Name taken from `hyprctl descriptions -j` on the running 0.55.4, not
+        -- from a wiki: "whether to disable the warning about not using
+        -- start-hyprland", default false.
+        disable_watchdog_warning  = true,
+
         -- If hyprlock dies while the screen is locked, the compositor stays
         -- locked — by design, so that killing the lock client is not a way in.
         -- The cost is that a crashed lock screen leaves you staring at

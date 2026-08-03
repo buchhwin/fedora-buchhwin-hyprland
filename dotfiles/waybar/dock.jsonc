@@ -6,15 +6,25 @@
 // This one inherits all of that from the bar it is a sibling of.
 //
 // wlr/taskbar shows the windows that are actually open (Hyprland implements
-// zwlr_foreign_toplevel_manager_v1), and the pinned launchers are plain custom
-// modules. Both are generated from settings.lua by scripts/dock.py, so the
-// settings app edits one list rather than this file.
+// zwlr_foreign_toplevel_manager_v1), and the pinned launchers are `image`
+// modules showing each application's real icon. Both are generated from
+// settings.lua by scripts/dock.py, so the settings app edits one list rather
+// than this file.
 {
     "layer": "top",
     "position": "bottom",
     "height": 52,
     "margin-bottom": 8,
     "spacing": 8,
+
+    // Added as a CSS class on the window (waybar(5), `name`), which is what
+    // lets style.css tell the dock apart from the top bar — the two share one
+    // stylesheet. Needed because the module-group "island" draws its rounded
+    // background even when the group is EMPTY: with no windows open, the
+    // centred taskbar left a small dark blob floating in the middle of the
+    // dock. Visible against a light wallpaper, and it looked like a bug
+    // because it was one.
+    "name": "dock",
 
     // Centred and only as wide as its contents — a dock that spans the screen
     // is a taskbar, and the taskbar is already at the top.

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -106,22 +107,49 @@ def build_config() -> dict:
     # icons on a light dock — the same mismatch the GTK templates had.
     config["wlr/taskbar"]["icon-theme"] = _icon_theme()
 
-    # Pinned launchers are ordinary custom modules; the dock does not need to
-    # know what an application is, only how to start one.
+    # Pinned launchers show the application's real icon.
     #
-    # `format` used to be an empty string, which waybar renders as a module of
-    # zero width — so every pinned application was invisible and the whole
-    # feature looked like it did nothing. A custom module cannot show a .desktop
-    # icon (only wlr/taskbar can), so the label is the first letter of the
-    # application, which at least identifies it and is always available.
+    # They used to show a LETTER — the first character of the entry id — on the
+    # reasoning that "a custom module cannot draw a .desktop icon, only
+    # wlr/taskbar can". The first half of that is true and the conclusion was
+    # wrong: waybar has a separate `image` module (waybar-image(5), present
+    # since well before the 0.15.0 installed here) that draws any file GdkPixbuf
+    # can open, which includes Papirus' SVGs. A dock captioned "B K N C" was
+    # never a limitation, only an unchecked assumption.
+    #
+    # Measured on the running desktop rather than assumed:
+    #   - `image#pin0` is how a second instance is named (waybar(5), MULTIPLE
+    #     INSTANCES OF A MODULE); its CSS selector is `#image.pin0` — the id is
+    #     the module, the instance becomes a class.
+    #   - both `path` and `exec` render. `exec` is used here because it is the
+    #     only one of the two that can also supply the tooltip text: its output
+    #     is "$path\n$tooltip". With no `interval` it runs exactly once.
+    #   - SVG really does load (librsvg2 is pulled in by the desktop packages).
+    icon_size = settings("icon_size", DEFAULTS["icon_size"])
+    theme = _icon_theme()
     modules = []
     for i, app in enumerate(pinned_apps()):
-        name = f"custom/pin{i}"
-        config[name] = {
-            "format": _pin_label(app),
-            "tooltip-format": app,
-            "on-click": f"gtk-launch {app}",
-        }
+        name = f"image#pin{i}"
+        icon = _icon_path(app, theme)
+        label = _display_name(app)
+        if icon:
+            printf = f"printf '%s\\n%s\\n' {shlex.quote(icon)} {shlex.quote(label)}"
+            config[name] = {
+                "exec": printf,
+                "size": icon_size,
+                "on-click": f"gtk-launch {app}",
+            }
+        else:
+            # Nothing resolved, not even the generic fallback icon — which means
+            # the icon theme itself is broken. A letter is ugly, but a module
+            # with no content at all is zero pixels wide, and an invisible pin is
+            # the bug this whole feature had for its first release.
+            name = f"custom/pin{i}"
+            config[name] = {
+                "format": _pin_label(app),
+                "tooltip-format": label,
+                "on-click": f"gtk-launch {app}",
+            }
         modules.append(name)
     if modules:
         config["modules-left"] = modules
@@ -149,13 +177,113 @@ def _icon_theme() -> str:
         return "Papirus-Dark"
 
 
-def _pin_label(app: str) -> str:
-    """A short visible label for a pinned launcher.
+# Where desktop entries and icons live. Flatpak's export directories are named
+# explicitly: they are in XDG_DATA_DIRS for a logged-in session, but this also
+# runs from the installer, where they are not.
+def _data_dirs() -> list[Path]:
+    dirs = [Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))]
+    dirs += [Path(p) for p in
+             os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share").split(":") if p]
+    dirs += [Path.home() / ".local/share/flatpak/exports/share",
+             Path("/var/lib/flatpak/exports/share")]
+    return [d for d in dirs if d.is_dir()]
 
-    Waybar's custom modules cannot draw a .desktop icon — only wlr/taskbar can,
-    and that shows running windows, not pins. So the label is the first letter
-    of the entry id, upper-cased: short enough not to crowd the dock, and it
-    identifies the entry. The full name is in the tooltip.
+
+# The search order for an icon NAME. Deliberately an explicit list rather than
+# following each theme's Inherits: Fedora's Papirus-Dark declares
+# `Inherits=breeze-dark,hicolor` — it does NOT inherit from Papirus — while
+# carrying only some of the application icons itself (8178 at 64x64, but no
+# kitty, no system-file-manager). Following the declared chain alone therefore
+# misses most application icons; following this list finds them.
+_FALLBACK_THEMES = ("Papirus", "breeze-dark", "breeze", "hicolor", "Adwaita")
+# Largest first, so a 32-pixel dock icon is downscaled rather than blown up.
+# `scalable` leads because hicolor keeps its SVGs there; Papirus files its SVGs
+# under the numbered sizes instead.
+_ICON_SIZES = ("scalable", "128x128", "96x96", "84x84", "64x64", "48x48",
+               "42x42", "32x32", "24x24", "22x22", "16x16")
+_ICON_SECTIONS = ("apps", "mimetypes")
+
+
+def _desktop_file(app: str) -> Path | None:
+    name = app if app.endswith(".desktop") else f"{app}.desktop"
+    for base in _data_dirs():
+        candidate = base / "applications" / name
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _entry_field(app: str, field: str) -> str:
+    """One field out of the [Desktop Entry] group.
+
+    Stops at the next group header on purpose: an entry's actions carry their
+    own Name= and Icon=, and reading the first match in the whole file would
+    happily return "New Private Window".
+    """
+    path = _desktop_file(app)
+    if path is None:
+        return ""
+    try:
+        lines = path.read_text(errors="replace").splitlines()
+    except OSError:
+        return ""
+    in_entry = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("["):
+            if in_entry:
+                break
+            in_entry = stripped == "[Desktop Entry]"
+            continue
+        if in_entry and stripped.startswith(f"{field}="):
+            return stripped.partition("=")[2].strip()
+    return ""
+
+
+def _display_name(app: str) -> str:
+    return _entry_field(app, "Name") or app
+
+
+def _icon_path(app: str, theme: str) -> str | None:
+    """An icon FILE for a pinned entry, or None.
+
+    The icon name comes from the entry's Icon= and is regularly not the entry
+    id: nemo asks for `system-file-manager`, VS Code for `vscode`. Looking up
+    the id would have silently found nothing for both.
+    """
+    name = _entry_field(app, "Icon") or app
+    if name.startswith("/"):
+        return name if Path(name).is_file() else None
+
+    # The requested name first, the generic executable icon only if that finds
+    # nothing at all — so a missing icon degrades to a plain one rather than to
+    # a hole in the dock.
+    for candidate in (name, "application-x-executable"):
+        for base in _data_dirs():
+            icons = base / "icons"
+            if not icons.is_dir():
+                continue
+            for th in (theme, *_FALLBACK_THEMES):
+                for size in _ICON_SIZES:
+                    for section in _ICON_SECTIONS:
+                        for ext in (".svg", ".png"):
+                            found = icons / th / size / section / f"{candidate}{ext}"
+                            if found.is_file():
+                                return str(found)
+        for base in _data_dirs():
+            for ext in (".svg", ".png", ".xpm"):
+                found = base / "pixmaps" / f"{candidate}{ext}"
+                if found.is_file():
+                    return str(found)
+    return None
+
+
+def _pin_label(app: str) -> str:
+    """Last-resort label when no icon file exists anywhere.
+
+    Only reached when even `application-x-executable` cannot be resolved, which
+    means no icon theme is installed at all. A letter is poor, but a module with
+    no content is zero pixels wide and the pin disappears entirely.
     """
     stem = app.rsplit(".", 1)[-1] if "." in app else app
     return (stem[:1] or "?").upper()

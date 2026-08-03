@@ -473,10 +473,26 @@ ask_value() {
 # plain typed value so an answer that is not in the short list still works.
 ask_choice() {
     local question="$1" default="$2"; shift 2
-    local -a options=("$@")
     if (( UNATTENDED )) || (( DRY_RUN )); then printf '%s' "$default"; return 0; fi
 
-    local i reply=""
+    # Every caller passes the CURRENT value first and then a short list of
+    # sensible ones — and the current value is very often already in that list.
+    # A German machine was therefore offered
+    #     1) de (default)   2) us   3) de (default)   4) gb …
+    # with the same entry twice, both labelled as the default. Seen in a
+    # transcript of a first install, not reasoned about. Callers stay simple;
+    # the duplicate is dropped here, keeping the first occurrence so the
+    # current value stays at the top where it belongs.
+    local -a options=()
+    local candidate seen i reply=""
+    for candidate in "$@"; do
+        seen=0
+        for i in "${options[@]}"; do
+            [[ "$candidate" == "$i" ]] && { seen=1; break; }
+        done
+        (( seen )) || options+=("$candidate")
+    done
+
     _say_tty "\n  $C_BOLD$question$C_RESET\n"
     for i in "${!options[@]}"; do
         if [[ "${options[$i]}" == "$default" ]]; then
