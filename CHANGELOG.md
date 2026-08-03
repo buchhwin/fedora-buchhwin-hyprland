@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.2.1
+
+The dock is built before the popups, not after them.
+
+Found by measuring rather than by looking: six seconds after login on a freshly
+installed machine the nine popup windows were up and the dock's layer surface
+did not exist yet. The dock is the only window in that process that is visible
+from the start, so it was the one thing arriving late — which reads as
+"something went wrong" rather than "still starting". It is up in about half a
+second now.
+
+
 ## v1.2.0
 
 The dock became an application, and the graphics assumptions got sorted out for

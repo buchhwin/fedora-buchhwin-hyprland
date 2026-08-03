@@ -87,8 +87,14 @@ class Panel(Adw.Application):
         # daemon whose popups are all hidden would consider itself finished.
         if self._daemon:
             self.hold()
-            self._build_all()
+            # The dock FIRST. It is the only window here that is visible from
+            # the start; the nine popups are not, and building them takes long
+            # enough on a cold session that a dock built afterwards arrives
+            # noticeably late — which reads as "something went wrong" rather
+            # than "still starting". Measured: six seconds after login the
+            # popups were up and the dock's layer surface did not exist yet.
             self._build_dock()
+            self._build_all()
             self._listen()
         else:
             self._get(self._only).show()
