@@ -19,12 +19,35 @@ EOF every time the last writer closed, turning the read loop into a spin.
 
 from __future__ import annotations
 
+import gettext
 import os
 import sys
 import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+# ⚠️ `_()` has to exist BEFORE any module that uses it is imported, and it did
+# not exist here at all. The settings application installs it in its entry
+# point; this one never did, so the first string that asked for a translation —
+# the dock's context menu — died with `NameError: name '_' is not defined` the
+# moment somebody right-clicked, and the menu simply never appeared.
+#
+# Nothing caught it. pyproject.toml declares `builtins = ["_"]` so ruff stops
+# reporting the settings pages, and that declaration was a blind spot for this
+# tree. tests/test_gettext.py now checks the two against each other.
+#
+# fallback=True: there is no catalogue for the panel yet, so every string
+# degrades to English rather than raising.
+_STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "buchhwin"
+try:
+    _LANG = (_STATE / "lang").read_text().strip() if (_STATE / "lang").exists() else None
+except OSError:
+    _LANG = None
+gettext.translation("buchhwin-panel",
+                    localedir=str(Path(__file__).with_name("locale")),
+                    languages=[_LANG] if _LANG else None,
+                    fallback=True).install()
 
 import gi
 

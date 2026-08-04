@@ -254,9 +254,17 @@ class Dock:
             self._shell.set_anchor(self.window, edge, True)
             self._shell.set_margin(self.window, edge,
                                    int(self._dock.get("margin", DEFAULTS["margin"])))
-            # NONE: a dock that takes the keyboard would swallow every shortcut
-            # while the pointer is anywhere near the bottom of the screen.
-            self._shell.set_keyboard_mode(self.window, self._shell.KeyboardMode.NONE)
+            # ⚠️ ON_DEMAND, not NONE. NONE looks like the right answer for a
+            # dock — it never wants the keyboard — but a GTK popover is a menu,
+            # and a menu on a layer surface that can never take focus is created,
+            # told to pop up, and simply does not appear. No error, no warning:
+            # _menu_for ran to the end and the screen stayed unchanged.
+            #
+            # ON_DEMAND takes the keyboard only when something inside asks for
+            # it, which is the right-click menu and nothing else. The popups in
+            # popup.py made the same call for the same reason.
+            self._shell.set_keyboard_mode(self.window,
+                                          self._shell.KeyboardMode.ON_DEMAND)
             # An exclusive zone would reserve space and shrink every window by
             # the dock's height. Deliberately not taken: this dock overlaps, the
             # same choice the old one made through `"exclusive": false`.
@@ -332,23 +340,36 @@ class Dock:
             dots.append(dot)
         box.append(dots)
 
-        button = Gtk.Button()
-        button.set_child(box)
-        button.add_css_class("dock-button")
-        button.set_has_frame(False)
-        button.set_tooltip_text(self._tooltip(entry))
-        button.connect("clicked", lambda _b, e=entry: self._activate(e))
+        # ⚠️ A Gtk.Box with ONE gesture, not a Gtk.Button.
+        #
+        # A GtkButton runs its own click gesture and never handed the secondary
+        # button on: with a real right click over VNC the handler was not
+        # reached at all — not in the bubble phase, not in the capture phase,
+        # not while the button was held down. Measured, and cross-checked
+        # against waybar's own right-click menu in the same session to prove the
+        # event was arriving at the compositor.
+        #
+        # One gesture for every button (set_button(0)) removes the fight
+        # entirely, and the hover styling moves to the box.
+        item = Gtk.Box()
+        item.append(box)
+        item.add_css_class("dock-button")
+        item.set_tooltip_text(self._tooltip(entry))
 
-        right = Gtk.GestureClick()
-        right.set_button(3)
-        right.connect("pressed", lambda *_a, e=entry, b=button: self._menu_for(e, b))
-        button.add_controller(right)
+        click = Gtk.GestureClick()
+        click.set_button(0)
+        click.connect("released", lambda g, n, x, y, e=entry, w=item:
+                      self._clicked(g.get_current_button(), e, w))
+        item.add_controller(click)
+        return item
 
-        middle = Gtk.GestureClick()
-        middle.set_button(2)
-        middle.connect("pressed", lambda *_a, e=entry: self._launch(e))
-        button.add_controller(middle)
-        return button
+    def _clicked(self, button: int, entry: Entry, widget: Gtk.Widget) -> None:
+        if button == 1:
+            self._activate(entry)
+        elif button == 2:
+            self._launch(entry)
+        elif button == 3:
+            self._menu_for(entry, widget)
 
     def _tooltip(self, entry: Entry) -> str:
         if not entry.running:
@@ -384,7 +405,7 @@ class Dock:
         except GLib.Error as exc:
             print(f"dock: could not start {entry.app}: {exc}", file=sys.stderr)
 
-    def _menu_for(self, entry: Entry, button: Gtk.Button) -> None:
+    def _menu_for(self, entry: Entry, anchor: Gtk.Widget) -> None:
         menu = Gio.Menu()
 
         if len(entry.windows) > 1:
@@ -413,7 +434,7 @@ class Dock:
             group.add_action(action)
 
         popover = Gtk.PopoverMenu.new_from_model(menu)
-        popover.set_parent(button)
+        popover.set_parent(anchor)
         popover.insert_action_group("dock", group)
         popover.set_autohide(True)
         # Kept on the instance: a popover that is only a local goes away with

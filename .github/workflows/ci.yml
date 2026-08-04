@@ -50,6 +50,12 @@ jobs:
         # shipped with three such rules and looked simply unstyled.
         run: python tests/test_css_colors.py
 
+      - name: every tree that calls _() installs it
+        # ruff cannot see this: pyproject declares builtins = ["_"], which is
+        # true for the settings app and was the blind spot that let the dock's
+        # menu die with NameError the first time anyone right-clicked.
+        run: python tests/test_gettext.py
+
       - name: generated docs are up to date
         # DEFAULTS.md is generated from settings.example.lua. A hand-edited
         # copy would drift within a month and nobody would notice, because

@@ -1,5 +1,39 @@
 # Changelog
 
+## v1.2.2
+
+Three bugs in the dock's context menu, none of which could be seen without
+clicking it with a real pointer. It had been verified by calling its methods
+from a test harness, which is exactly the kind of proof that proves nothing.
+
+- **`_()` did not exist in the panel process.** The menu used it for its
+  labels, and the panel's entry point had never called `gettext.install()` —
+  only the settings application does. Right-clicking raised
+  `NameError: name '_' is not defined` inside a GTK signal handler, so GTK
+  carried on, the traceback went to the journal, and on screen simply nothing
+  happened. ⚠️ ruff could not see it: `pyproject.toml` declares
+  `builtins = ["_"]`, which is true for the settings tree and was precisely
+  the blind spot for this one. `tests/test_gettext.py` now checks every tree
+  that calls `_()` against the entry point that is supposed to install it.
+- **A `GtkButton` never handed the secondary button on.** Not in the bubble
+  phase, not in the capture phase, not while held down — cross-checked against
+  waybar's own right-click menu in the same session to prove the event was
+  reaching the compositor. Each dock item is a box with one gesture for all
+  three buttons now, which removes the fight instead of working around it.
+- **A layer surface with keyboard mode NONE cannot show a menu.** The popover
+  was created, `popup()` was called, `_menu_for` ran to its end — and the
+  screen did not change. No error, no warning. ON_DEMAND takes the keyboard
+  only when something inside asks for it, which is this menu and nothing else;
+  panel/popup.py had already made the same call for the same reason.
+
+Verified by driving the pointer over VNC: left click launches, a second left
+click focuses rather than launching again, right click opens the menu, and
+clicking "Unpin" removes the entry from `dock.pinned` and redraws the dock.
+
+⚠️ Both clicks have to happen in ONE VNC session — reconnecting dismisses the
+popover, which cost an hour of looking for a bug that was in the test.
+
+
 ## v1.2.1
 
 The dock is built before the popups, not after them.
